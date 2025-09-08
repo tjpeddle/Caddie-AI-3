@@ -51,13 +51,30 @@ const App: React.FC = () => {
   }, [golfData]);
 
   const speak = useCallback((text: string) => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
+  if (window.speechSynthesis && text.trim()) {
+    // Cancel any existing speech
+    window.speechSynthesis.cancel();
+    
+    // Wait a moment before starting new speech
+    setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.8; // Slower (0.1 = very slow, 2.0 = very fast)
+      utterance.rate = 0.8;
+      utterance.volume = 1.0;
+      utterance.pitch = 1.0;
+      
+      // Add error handling
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+      };
+      
+      utterance.onend = () => {
+        console.log('Speech finished');
+      };
+      
       window.speechSynthesis.speak(utterance);
-    }
-  }, []);
+    }, 100);
+  }
+}, []);
 
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
