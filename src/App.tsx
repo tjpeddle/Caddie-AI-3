@@ -54,7 +54,7 @@ const App: React.FC = () => {
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.20;
+      utterance.rate = 0.8; // Slower (0.1 = very slow, 2.0 = very fast)
       window.speechSynthesis.speak(utterance);
     }
   }, []);
