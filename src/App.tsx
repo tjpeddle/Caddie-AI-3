@@ -125,13 +125,17 @@ const App: React.FC = () => {
     onTranscriptChange: setText,
   });
   
-  const handleSendMessage = useCallback((message: string) => {
-    const messageToSend = message.trim();
-    if (messageToSend) {
-        handleUserInput(messageToSend);
-        setText('');
+const handleSendMessage = useCallback((message: string) => {
+  const messageToSend = message.trim();
+  if (messageToSend) {
+    handleUserInput(messageToSend);
+    setText(''); // This clears the input
+    // Also stop listening and clear any ongoing speech recognition
+    if (isListening) {
+      stopListening();
     }
-  }, [handleUserInput]);
+  }
+}, [handleUserInput, isListening, stopListening]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
