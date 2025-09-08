@@ -289,16 +289,6 @@ const handleSendMessage = useCallback((message: string) => {
         isLoading={isLoading}
       />
     </div>
-      <InputBar
-        text={text}
-        setText={setText}
-        onSendMessage={handleSendMessage}
-        isListening={isListening}
-        startListening={startListening}
-        stopListening={stopListening}
-        isLoading={isLoading}
-      />
-    </div>
   );
 };
 
