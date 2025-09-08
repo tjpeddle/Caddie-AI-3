@@ -7,7 +7,7 @@ import Header from './components/Header';
 import ChatMessage from './components/ChatMessage';
 import InputBar from './components/InputBar';
 import WelcomeScreen from './components/WelcomeScreen';
-
+import { Settings } from 'lucide-react';
 const STORAGE_KEY = 'golfCaddieHistory_v2';
 
 const App: React.FC = () => {
