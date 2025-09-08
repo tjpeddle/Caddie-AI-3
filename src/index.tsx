@@ -1,7 +1,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './services/App';
+import App from "./services/App.tsx"
 
 // Register the service worker for PWA functionality
 if ('serviceWorker' in navigator) {
