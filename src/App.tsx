@@ -16,7 +16,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [text, setText] = useState(''); // Lifted state from InputBar
-
+const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
@@ -86,7 +88,7 @@ const speak = useCallback((text: string) => {
       window.speechSynthesis.speak(utterance);
     }, 100);
   }
-}, [selectedVoice]);
+}, []);
 
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
