@@ -9,7 +9,7 @@ class GeminiService {
 
   constructor() {
     // Fix: Sourced API key from process.env.API_KEY to align with coding guidelines and fix TypeScript error.
-    const apiKey = process.env.API_KEY;
+    const apiKey = import.meta.env.VITE_API_KEY;
     if (!apiKey) {
       throw new Error("API_KEY environment variable not set");
     }
