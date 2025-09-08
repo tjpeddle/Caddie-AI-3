@@ -50,31 +50,43 @@ const App: React.FC = () => {
     }
   }, [golfData]);
 
-  const speak = useCallback((text: string) => {
+  // Load available voices
+useEffect(() => {
+  const loadVoices = () => {
+    const voices = window.speechSynthesis.getVoices();
+    setAvailableVoices(voices);
+    // Set default voice (first English voice or first voice)
+    const defaultVoice = voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+    setSelectedVoice(defaultVoice);
+  };
+
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+}, []);
+  
+const speak = useCallback((text: string) => {
   if (window.speechSynthesis && text.trim()) {
-    // Cancel any existing speech
     window.speechSynthesis.cancel();
     
-    // Wait a moment before starting new speech
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.8;
       utterance.volume = 1.0;
       utterance.pitch = 1.0;
       
-      // Add error handling
+      // Use selected voice
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event);
-      };
-      
-      utterance.onend = () => {
-        console.log('Speech finished');
       };
       
       window.speechSynthesis.speak(utterance);
     }, 100);
   }
-}, []);
+}, [selectedVoice]);
 
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
@@ -228,6 +240,55 @@ const handleSendMessage = useCallback((message: string) => {
         {isLoading && <ChatMessage message={{ role: Role.MODEL, content: '...' }} isLoading={true} />}
         {error && <p className="text-red-400 text-center">{error}</p>}
       </main>
+      {/* Voice Settings - ADD THIS WHOLE SECTION */}
+      <div className="p-4 border-t border-gray-700">
+        <div className="flex justify-end">
+          <div className="relative">
+            <button
+              onClick={() => setShowVoiceSettings(!showVoiceSettings)}
+              className="p-2 text-gray-400 hover:text-white transition-colors"
+              title="Voice Settings"
+            >
+              <Settings size={20} />
+            </button>
+            
+            {showVoiceSettings && (
+              <div className="absolute bottom-12 right-0 bg-gray-800 rounded-lg p-4 min-w-48 shadow-lg">
+                <h3 className="text-white mb-2">Voice Options</h3>
+                <div className="max-h-40 overflow-y-auto">
+                  {availableVoices.map((voice, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSelectedVoice(voice);
+                        setShowVoiceSettings(false);
+                      }}
+                      className={`block w-full text-left p-2 rounded text-sm mb-1 ${
+                        selectedVoice === voice
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      {voice.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <InputBar
+        text={text}
+        setText={setText}
+        onSendMessage={handleSendMessage}
+        isListening={isListening}
+        startListening={startListening}
+        stopListening={stopListening}
+        isLoading={isLoading}
+      />
+    </div>
       <InputBar
         text={text}
         setText={setText}
