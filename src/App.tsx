@@ -7,6 +7,7 @@ import Header from './components/Header';
 import ChatMessage from './components/ChatMessage';
 import InputBar from './components/InputBar';
 import WelcomeScreen from './components/WelcomeScreen';
+
 const STORAGE_KEY = 'golfCaddieHistory_v2';
 
 const App: React.FC = () => {
@@ -250,7 +251,7 @@ const handleSendMessage = useCallback((message: string) => {
               className="p-2 text-gray-400 hover:text-white transition-colors"
               title="Voice Settings"
             >
-              <Settings size={20} />
+             ⚙️
             </button>
             
             {showVoiceSettings && (
