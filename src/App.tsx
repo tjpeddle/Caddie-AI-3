@@ -19,6 +19,7 @@ const App: React.FC = () => {
 const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
 const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [voiceSpeed, setVoiceSpeed] = useState(0.8);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
@@ -72,7 +73,7 @@ const speak = useCallback((text: string) => {
     
     setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.8;
+      utterance.rate = voiceSpeed;
       utterance.volume = 1.0;
       utterance.pitch = 1.0;
       
@@ -88,7 +89,7 @@ const speak = useCallback((text: string) => {
       window.speechSynthesis.speak(utterance);
     }, 100);
   }
-}, []);
+}, [selectedVoice, voiceSpeed]);
 
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
@@ -256,7 +257,26 @@ const handleSendMessage = useCallback((message: string) => {
             
             {showVoiceSettings && (
               <div className="absolute bottom-12 right-0 bg-gray-800 rounded-lg p-4 min-w-48 shadow-lg">
-                <h3 className="text-white mb-2">Voice Options</h3>
+                <h3 className="text-white mb-2">Voice Options</h3>{/* Speed Control */}
+<div className="mb-4 pb-4 border-b border-gray-600">
+  <label className="text-white text-sm mb-2 block">
+    Speed: {voiceSpeed.toFixed(1)}x
+  </label>
+  <input
+    type="range"
+    min="0.5"
+    max="2.0"
+    step="0.1"
+    value={voiceSpeed}
+    onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
+    className="w-full"
+  />
+  <div className="flex justify-between text-xs text-gray-400 mt-1">
+    <span>Slow</span>
+    <span>Fast</span>
+  </div>
+</div>
+                
                 <div className="max-h-40 overflow-y-auto">
                   {availableVoices.map((voice, index) => (
                     <button
