@@ -20,6 +20,7 @@ const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(
 const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.8);
+  const [wakeLock, setWakeLock] = useState<any>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
@@ -90,7 +91,25 @@ const speak = useCallback((text: string) => {
     }, 100);
   }
 }, [selectedVoice, voiceSpeed]);
+const requestWakeLock = useCallback(async () => {
+  try {
+    if ('wakeLock' in navigator) {
+      const lock = await (navigator as any).wakeLock.request('screen');
+      setWakeLock(lock);
+      console.log('Wake lock active');
+    }
+  } catch (err) {
+    console.error('Wake lock failed:', err);
+  }
+}, []);
 
+const releaseWakeLock = useCallback(() => {
+  if (wakeLock) {
+    wakeLock.release();
+    setWakeLock(null);
+    console.log('Wake lock released');
+  }
+}, [wakeLock]);
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
@@ -174,7 +193,24 @@ const handleSendMessage = useCallback((message: string) => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
-
+useEffect(() => {
+  // Request wake lock when app starts
+  requestWakeLock();
+  
+  // Re-request if visibility changes
+  const handleVisibilityChange = () => {
+    if (!document.hidden) {
+      requestWakeLock();
+    }
+  };
+  
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  return () => {
+    releaseWakeLock();
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+  };
+}, [requestWakeLock, releaseWakeLock]);
   const goToMainMenu = useCallback(() => {
     setShowWelcome(true);
   }, []);
