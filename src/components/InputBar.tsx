@@ -67,21 +67,27 @@ const InputBar: React.FC<InputBarProps> = ({
           <MicrophoneIcon className="w-7 h-7 relative z-10" />
         </button>
         <div className="relative flex-grow">
-            <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                    }
-                }}
-                placeholder={isListening ? 'Listening...' : 'Type your yardage, club, lie...'}
-                disabled={isLoading}
-                readOnly={isListening}
-                className="w-full h-14 pl-4 pr-14 rounded-full bg-gray-700 text-gray-200 placeholder-gray-400 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:outline-none disabled:bg-gray-600 read-only:bg-gray-700 transition-all duration-200"
-            />
+      <textarea
+  value={text}
+  onChange={(e) => setText(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }}
+  onInput={(e) => {
+    // Auto-resize the textarea
+    e.target.style.height = '56px'; // Reset to minimum height (h-14 = 56px)
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; // Max height of 120px
+  }}
+  placeholder={isListening ? 'Listening...' : 'Type your yardage, club, lie...'}
+  disabled={isLoading}
+  readOnly={isListening}
+  rows={1}
+  className="w-full min-h-14 max-h-30 pl-4 pr-14 py-4 rounded-full bg-gray-700 text-gray-200 placeholder-gray-400 border border-gray-600 focus:ring-2 focus:ring-green-500 focus:outline-none disabled:bg-gray-600 read-only:bg-gray-700 transition-all duration-200 resize-none overflow-hidden"
+  style={{ minHeight: '56px' }}
+/>
             {showSendButton && !isLoading && (
                  <button 
                     onClick={handleSend}
