@@ -47,8 +47,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading = false })
   return (
     <div className={containerClasses}>
       {isModel && <CaddieIcon />}
-      <div className={`max-w-md md:max-w-lg p-3 ${bubbleClasses} text-base`}>
-        {isLoading ? <LoadingDots /> : <p className="whitespace-pre-wrap">{message.content}</p>}
+     <div className={`max-w-md md:max-w-lg p-3 ${bubbleClasses} text-base break-words`}>
+        {isLoading ? <LoadingDots /> : <p className="whitespace-pre-wrap break-words overflow-wrap-anywhere">{message.content}</p>
       </div>
       {!isModel && <UserIcon />}
     </div>
