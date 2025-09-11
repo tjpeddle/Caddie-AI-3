@@ -464,7 +464,7 @@ useEffect(() => {
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700'
                       }`}
-                    >
+                    
                       {voice.name}
                     </button>
                   ))}
