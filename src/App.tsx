@@ -475,25 +475,24 @@ useEffect(() => {
         </div>
       </div>
 
-      <InputBar
-  text={text}
-  setText={setText}
-  onSendMessage={handleSendMessage}
-  isListening={isListening}
-  startListening={startListening}
-  stopListening={stopListening}
-  isLoading={isLoading}
-/>
+<InputBar
+        text={text}
+        setText={setText}
+        onSendMessage={handleSendMessage}
+        isListening={isListening}
+        startListening={startListening}
+        stopListening={stopListening}
+        isLoading={isLoading}
+      />
 
-{golfData?.currentRoundId && golfData.roundStats[golfData.currentRoundId] && (
-  <Scorecard
-    roundStats={golfData.roundStats[golfData.currentRoundId]}
-    isVisible={showScorecard}
-    onClose={() => setShowScorecard(false)}
-  />
-)}
-
-</div>
+      {golfData?.currentRoundId && golfData.roundStats[golfData.currentRoundId] && (
+        <Scorecard
+          roundStats={golfData.roundStats[golfData.currentRoundId]}
+          isVisible={showScorecard}
+          onClose={() => setShowScorecard(false)}
+        />
+      )}
+    </div>
   );
 };
 
