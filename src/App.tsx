@@ -464,7 +464,7 @@ useEffect(() => {
                           ? 'bg-blue-600 text-white'
                           : 'text-gray-300 hover:bg-gray-700'
                       }`}
-                    
+                    >
                       {voice.name}
                     </button>
                   ))}
@@ -475,9 +475,6 @@ useEffect(() => {
         </div>
       </div>
 
-import React, { useState } from 'react'; // Don't forget to import React and useState if you're using them
-
-// Assuming these components are defined elsewhere
 import InputBar from './InputBar';
 import Scorecard from './Scorecard';
 
