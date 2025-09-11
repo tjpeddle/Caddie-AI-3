@@ -475,7 +475,35 @@ useEffect(() => {
         </div>
       </div>
 
-<InputBar
+import React, { useState } from 'react'; // Don't forget to import React and useState if you're using them
+
+// Assuming these components are defined elsewhere
+import InputBar from './InputBar';
+import Scorecard from './Scorecard';
+
+const App = () => {
+  // Assuming these states and handlers are defined here
+  const [text, setText] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showScorecard, setShowScorecard] = useState(false);
+  const [golfData, setGolfData] = useState(null);
+
+  const handleSendMessage = () => {
+    // Logic for sending message
+  };
+
+  const startListening = () => {
+    // Logic for starting voice recognition
+  };
+
+  const stopListening = () => {
+    // Logic for stopping voice recognition
+  };
+
+   return (
+    <div>
+      <InputBar
         text={text}
         setText={setText}
         onSendMessage={handleSendMessage}
