@@ -475,7 +475,7 @@ useEffect(() => {
         </div>
       </div>
 
-    <InputBar
+      <InputBar
   text={text}
   setText={setText}
   onSendMessage={handleSendMessage}
