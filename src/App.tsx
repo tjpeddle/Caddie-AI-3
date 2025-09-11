@@ -21,6 +21,7 @@ const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([
 const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.8);
   const [wakeLock, setWakeLock] = useState<any>(null);
+  const [showScorecard, setShowScorecard] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
@@ -303,6 +304,13 @@ useEffect(() => {
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
+             <button
+    onClick={() => setShowScorecard(true)}
+    className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
+    title="View Scorecard"
+  >
+    📋
+  </button>
             <button
               onClick={() => setShowVoiceSettings(!showVoiceSettings)}
               className="p-2 text-gray-400 hover:text-white transition-colors"
@@ -357,16 +365,25 @@ useEffect(() => {
         </div>
       </div>
 
-      <InputBar
-        text={text}
-        setText={setText}
-        onSendMessage={handleSendMessage}
-        isListening={isListening}
-        startListening={startListening}
-        stopListening={stopListening}
-        isLoading={isLoading}
-      />
-    </div>
+    <InputBar
+  text={text}
+  setText={setText}
+  onSendMessage={handleSendMessage}
+  isListening={isListening}
+  startListening={startListening}
+  stopListening={stopListening}
+  isLoading={isLoading}
+/>
+
+{golfData?.currentRoundId && golfData.roundStats[golfData.currentRoundId] && (
+  <Scorecard
+    roundStats={golfData.roundStats[golfData.currentRoundId]}
+    isVisible={showScorecard}
+    onClose={() => setShowScorecard(false)}
+  />
+)}
+
+</div>
   );
 };
 
