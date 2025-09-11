@@ -115,7 +115,53 @@ const releaseWakeLock = useCallback(() => {
     console.log('Wake lock released');
   }
 }, [wakeLock]);
-  const handleUserInput = useCallback(async (inputText: string) => {
+
+const processScoreData = useCallback((text: string, currentRoundId: string) => {
+  if (!golfData?.roundStats[currentRoundId]) return;
+  
+  // Simple pattern matching for common golf phrases
+  const holeMatch = text.match(/hole (\d+)/i);
+  const parMatch = text.match(/par (\d+)/i);
+  const fairwayHit = /hit.*fairway|found.*fairway/i.test(text);
+  const fairwayMissed = /miss.*fairway|off.*fairway/i.test(text);
+  const greenHit = /hit.*green|on.*green/i.test(text);
+  const greenMissed = /miss.*green|short|long/i.test(text);
+  const puttsMatch = text.match(/(\d+) putt|two putt|three putt/i);
+  const upAndDown = /up and down|saved par/i.test(text);
+  
+  let updates: any = {};
+  let holeNumber = golfData.roundStats[currentRoundId].currentHole;
+  
+  if (holeMatch) holeNumber = parseInt(holeMatch[1]);
+  if (parMatch) updates.par = parseInt(parMatch[1]);
+  if (fairwayHit) updates.fairwayHit = true;
+  if (fairwayMissed) updates.fairwayHit = false;
+  if (greenHit) updates.greenInRegulation = true;
+  if (greenMissed) updates.greenInRegulation = false;
+  if (puttsMatch) updates.putts = puttsMatch[1] ? parseInt(puttsMatch[1]) : 2;
+  if (upAndDown) updates.upAndDown = true;
+  
+  if (Object.keys(updates).length > 0) {
+    setGolfData(prevData => {
+      if (!prevData) return null;
+      const roundStats = { ...prevData.roundStats[currentRoundId] };
+      const existingHoleIndex = roundStats.holes.findIndex(h => h.holeNumber === holeNumber);
+      
+      if (existingHoleIndex >= 0) {
+        roundStats.holes[existingHoleIndex] = { ...roundStats.holes[existingHoleIndex], ...updates };
+      } else {
+        roundStats.holes.push({ holeNumber, par: updates.par || 4, ...updates });
+      }
+      
+      return {
+        ...prevData,
+        roundStats: { ...prevData.roundStats, [currentRoundId]: roundStats }
+      };
+    });
+  }
+}, [golfData]);
+
+const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
     const userMessage: Message = { role: Role.USER, content: inputText };
@@ -138,10 +184,14 @@ const releaseWakeLock = useCallback(() => {
     setError(null);
 
     try {
-      const responseText = await geminiService.sendMessage(inputText);
-      const modelMessage: Message = { role: Role.MODEL, content: responseText };
-      
-      setGolfData(prevData => {
+    const responseText = await geminiService.sendMessage(inputText);
+const modelMessage: Message = { role: Role.MODEL, content: responseText };
+
+// Process scoring data from user input and AI response
+processScoreData(inputText + " " + responseText, currentRoundId);
+
+setGolfData(prevData => {
+  // ... rest of your existing code
         if (!prevData) return null;
         const currentMessages = prevData.rounds[currentRoundId] || [];
         return {
