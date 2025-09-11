@@ -266,7 +266,7 @@ useEffect(() => {
     },
     currentRoundId: newRoundId,
 };
-    
+    }
     setGolfData(updatedData);
     const fullHistory = Object.values(updatedData.rounds).flat();
     geminiService.initializeChat(fullHistory);
