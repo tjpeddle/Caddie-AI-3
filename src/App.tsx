@@ -29,23 +29,27 @@ const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   }, [golfData]);
 
   // Load history from localStorage or show welcome screen on initial load
-  useEffect(() => {
-    try {
-      const savedHistory = localStorage.getItem(STORAGE_KEY);
-      if (savedHistory) {
-        const data = JSON.parse(savedHistory) as GolfData;
-        setGolfData(data);
-        const fullHistory = Object.values(data.rounds).flat();
-        geminiService.initializeChat(fullHistory);
-      } else {
-        setShowWelcome(true);
+ useEffect(() => {
+  try {
+    const savedHistory = localStorage.getItem(STORAGE_KEY);
+    if (savedHistory) {
+      const data = JSON.parse(savedHistory) as GolfData;
+      // Ensure roundStats exists for backward compatibility
+      if (!data.roundStats) {
+        data.roundStats = {};
       }
-    } catch (e) {
-      console.error("Failed to load or parse chat history:", e);
-      localStorage.removeItem(STORAGE_KEY);
+      setGolfData(data);
+      const fullHistory = Object.values(data.rounds).flat();
+      geminiService.initializeChat(fullHistory);
+    } else {
       setShowWelcome(true);
     }
-  }, []);
+  } catch (e) {
+    console.error("Failed to load or parse chat history:", e);
+    localStorage.removeItem(STORAGE_KEY);
+    setShowWelcome(true);
+  }
+}, []);
 
   // Save history to localStorage whenever it changes
   useEffect(() => {
@@ -229,23 +233,39 @@ useEffect(() => {
       // First round ever
       welcomeMessage = "Hey, I'm your AI Caddie! I'll remember how you play to give you the best advice. What's the situation on your first hole?";
       initialMessage = { role: Role.MODEL, content: welcomeMessage };
-      updatedData = {
-          rounds: { [newRoundId]: [initialMessage] },
-          currentRoundId: newRoundId,
-      };
+     updatedData = {
+    rounds: { [newRoundId]: [initialMessage] },
+    roundStats: { 
+        [newRoundId]: {
+            roundId: newRoundId,
+            date: new Date().toISOString(),
+            holes: [],
+            currentHole: 1,
+        }
+    },
+    currentRoundId: newRoundId,
+};
     } else {
       // Subsequent new round
       welcomeMessage = "Alright, new round! I've got all your past shots in my memory. Let's get started. Tell me about the first hole.";
       initialMessage = { role: Role.MODEL, content: welcomeMessage };
-      updatedData = {
-          ...golfData,
-          rounds: {
-              ...golfData.rounds,
-              [newRoundId]: [initialMessage],
-          },
-          currentRoundId: newRoundId,
-      };
-    }
+     updatedData = {
+    ...golfData,
+    rounds: {
+        ...golfData.rounds,
+        [newRoundId]: [initialMessage],
+    },
+    roundStats: {
+        ...golfData.roundStats,
+        [newRoundId]: {
+            roundId: newRoundId,
+            date: new Date().toISOString(),
+            holes: [],
+            currentHole: 1,
+        },
+    },
+    currentRoundId: newRoundId,
+};
     
     setGolfData(updatedData);
     const fullHistory = Object.values(updatedData.rounds).flat();
