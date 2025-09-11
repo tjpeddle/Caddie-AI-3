@@ -235,11 +235,17 @@ const handleSendMessage = useCallback((message: string) => {
   const messageToSend = message.trim();
   if (messageToSend) {
     handleUserInput(messageToSend);
-    setText(''); // This clears the input
-    // Also stop listening and clear any ongoing speech recognition
+    setText(''); // Clear the input
+    
+    // Force stop speech recognition if it's active
     if (isListening) {
       stopListening();
     }
+    
+    // Additional cleanup for speech recognition
+    setTimeout(() => {
+      setText(''); // Clear again after a short delay
+    }, 100);
   }
 }, [handleUserInput, isListening, stopListening]);
 
