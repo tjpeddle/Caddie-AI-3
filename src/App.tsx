@@ -8,6 +8,7 @@ import ChatMessage from './components/ChatMessage';
 import InputBar from './components/InputBar';
 import WelcomeScreen from './components/WelcomeScreen';
 import Scorecard from './components/Scorecard';
+import PhotoCapture from './components/PhotoCapture';
 const STORAGE_KEY = 'golfCaddieHistory_v2';
 
 const App: React.FC = () => {
@@ -22,6 +23,7 @@ const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.8);
   const [wakeLock, setWakeLock] = useState<any>(null);
   const [showScorecard, setShowScorecard] = useState(false);
+  const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
@@ -160,7 +162,54 @@ const processScoreData = useCallback((text: string, currentRoundId: string) => {
     });
   }
 }, [golfData]);
-
+const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
+  if (!golfData?.currentRoundId) return;
+  
+  setIsPhotoLoading(true);
+  
+  try {
+    const analysisPrompt = `Analyze this golf hole and provide strategic advice. Look for hazards, green shape, pin position, best target areas, and club selection suggestions. Provide specific strategic advice for playing this hole.`;
+    
+    const photoMessage = `[Photo Analysis] ${description}`;
+    const userMessage: Message = { role: Role.USER, content: photoMessage };
+    
+    // Add user message
+    const currentRoundId = golfData.currentRoundId;
+    setGolfData(prevData => {
+      if (!prevData) return null;
+      const currentMessages = prevData.rounds[currentRoundId] || [];
+      return {
+        ...prevData,
+        rounds: {
+          ...prevData.rounds,
+          [currentRoundId]: [...currentMessages, userMessage],
+        },
+      };
+    });
+    
+    const analysisText = await geminiService.sendMessage(analysisPrompt);
+    const analysisMessage: Message = { role: Role.MODEL, content: analysisText };
+    
+    setGolfData(prevData => {
+      if (!prevData) return null;
+      const currentMessages = prevData.rounds[currentRoundId] || [];
+      return {
+        ...prevData,
+        rounds: {
+          ...prevData.rounds,
+          [currentRoundId]: [...currentMessages, analysisMessage],
+        },
+      };
+    });
+    
+    speak(analysisText);
+    
+  } catch (error) {
+    console.error('Photo analysis failed:', error);
+  } finally {
+    setIsPhotoLoading(false);
+  }
+}, [golfData, speak]);
 const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
@@ -360,6 +409,11 @@ useEffect(() => {
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
+            <div className="relative">
+  <PhotoCapture 
+    onPhotoTaken={handlePhotoTaken}
+    isLoading={isPhotoLoading}
+  />
              <button
     onClick={() => setShowScorecard(true)}
     className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
