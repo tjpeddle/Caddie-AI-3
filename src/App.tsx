@@ -471,24 +471,10 @@ useEffect(() => {
                 </div>
               </div>
             )}
-          </div>
+     </div>
         </div>
       </div>
-
-  const handleSendMessage = () => {
-    // Logic for sending message
-  };
-
-  const startListening = () => {
-    // Logic for starting voice recognition
-  };
-
-  const stopListening = () => {
-    // Logic for stopping voice recognition
-  };
-
-   return (
-    <div>
+      
       <InputBar
         text={text}
         setText={setText}
@@ -498,7 +484,7 @@ useEffect(() => {
         stopListening={stopListening}
         isLoading={isLoading}
       />
-
+      
       {golfData?.currentRoundId && golfData.roundStats[golfData.currentRoundId] && (
         <Scorecard
           roundStats={golfData.roundStats[golfData.currentRoundId]}
@@ -506,6 +492,7 @@ useEffect(() => {
           onClose={() => setShowScorecard(false)}
         />
       )}
+      
     </div>
   );
 };
