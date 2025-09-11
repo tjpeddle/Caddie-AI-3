@@ -13,21 +13,21 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: 1280, height: 720 }
-      });
-      setStream(mediaStream);
-      setIsCapturing(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-    } catch (error) {
-      console.error('Camera access failed:', error);
-      // Fallback to file input
-      fileInputRef.current?.click();
+  try {
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }
+    });
+    setStream(mediaStream);
+    setIsCapturing(true);
+    if (videoRef.current) {
+      videoRef.current.srcObject = mediaStream;
+      videoRef.current.play();
     }
-  };
+  } catch (error) {
+    console.error('Camera access failed:', error);
+    fileInputRef.current?.click();
+  }
+};
 
   const stopCamera = () => {
     if (stream) {
@@ -73,6 +73,7 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
             ref={videoRef}
             autoPlay
             playsInline
+            muted
             className="w-full h-full object-cover"
           />
           <canvas ref={canvasRef} className="hidden" />
