@@ -475,17 +475,6 @@ useEffect(() => {
         </div>
       </div>
 
-import InputBar from './InputBar';
-import Scorecard from './Scorecard';
-
-const App = () => {
-  // Assuming these states and handlers are defined here
-  const [text, setText] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showScorecard, setShowScorecard] = useState(false);
-  const [golfData, setGolfData] = useState(null);
-
   const handleSendMessage = () => {
     // Logic for sending message
   };
