@@ -80,13 +80,16 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col">
         <div className="flex-1 relative">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-          />
+         <video
+  ref={videoRef}
+  autoPlay
+  playsInline
+  muted
+  controls={false}
+  webkit-playsinline="true"
+  className="w-full h-full object-cover"
+  style={{ objectFit: 'cover' }}
+/>
           <canvas ref={canvasRef} className="hidden" />
         </div>
         <div className="p-4 flex justify-center space-x-4">
