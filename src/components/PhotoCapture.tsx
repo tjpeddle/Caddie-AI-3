@@ -1,171 +1,147 @@
- import React, { useRef, useState } from 'react';
+ import React, { useState, useRef } from 'react';
 
-interface PhotoUploadProps {
+interface PhotoCaptureProps {
   onPhotoTaken: (photoData: string, analysis: string) => void;
   isLoading: boolean;
 }
 
-const PhotoUpload: React.FC<PhotoUploadProps> = ({ onPhotoTaken, isLoading }) => {
+const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
+  const [isCapturing, setIsCapturing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const handleFileSelect = (file: File) => {
-    if (file && file.type.startsWith('image/')) {
+  const startCamera = async () => {
+    console.log('Starting camera...');
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      
+      setStream(mediaStream);
+      setIsCapturing(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        
+        // iOS Safari fix - force reload
+        setTimeout(() => {
+          if (videoRef.current) {
+            videoRef.current.load();
+            videoRef.current.play();
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Camera access failed:', error);
+      fileInputRef.current?.click();
+    }
+  };
+
+  const stopCamera = () => {
+    console.log('Stopping camera...');
+    
+    if (stream) {
+      stream.getTracks().forEach(track => {
+        console.log('Stopping track:', track);
+        track.stop();
+      });
+      setStream(null);
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setIsCapturing(false);
+    console.log('Camera stopped, isCapturing set to false');
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    const context = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context?.drawImage(video, 0, 0);
+    
+    const photoData = canvas.toDataURL('image/jpeg', 0.8);
+    stopCamera();
+    onPhotoTaken(photoData, 'Photo captured for analysis');
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const photoData = e.target?.result as string;
-        setPreviewImage(photoData);
-        onPhotoTaken(photoData, 'Photo uploaded for AI analysis');
+        onPhotoTaken(photoData, 'Photo uploaded for analysis');
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-  };
-
-  const openFileSelector = () => {
-    fileInputRef.current?.click();
-  };
+  if (isCapturing) {
+    return (
+      <div className="fixed inset-0 bg-black z-50 flex flex-col">
+        <div className="flex-1 relative" style={{ backgroundColor: 'black' }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: '100vw',
+              height: '100vh',
+              objectFit: 'cover',
+              position: 'absolute',
+              top: 0,
+              left: 0
+            }}
+          />
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+        <div className="p-4 flex justify-center space-x-4">
+          <button
+            onClick={stopCamera}
+            className="px-6 py-3 bg-gray-600 text-white rounded-lg"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={capturePhoto}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg"
+          >
+            📸 Capture
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Hidden file input */}
+    <>
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
-        onChange={handleInputChange}
+        onChange={handleFileSelect}
         className="hidden"
       />
-
-      {/* Main upload area */}
-      <div
-        onClick={openFileSelector}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        className={`
-          relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all
-          ${dragOver 
-            ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-            : 'border-gray-300 dark:border-gray-600 hover:border-green-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-          }
-          ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+      <button
+        onClick={startCamera}
+        disabled={isLoading}
+        className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
+        title="Take Photo of Hole"
       >
-        {previewImage ? (
-          <div className="space-y-4">
-            <img 
-              src={previewImage} 
-              alt="Selected photo" 
-              className="max-w-full max-h-48 mx-auto rounded-lg shadow-lg"
-            />
-            <p className="text-green-600 font-medium">
-              ✅ Photo ready for analysis!
-            </p>
-            <p className="text-sm text-gray-500">
-              Click to select a different photo
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="text-6xl">📸</div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Upload Photo of Your Golf Shot
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">
-                Take a photo with your phone camera, then upload it here for AI analysis
-              </p>
-              <div className="space-y-2 text-sm text-gray-400">
-                <p>📱 Best on iPhone: Take photo → Photos app → Share → Upload here</p>
-                <p>🖱️ On desktop: Drag & drop or click to browse</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 rounded-xl flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-2"></div>
-              <p className="text-gray-600 dark:text-gray-400">Analyzing your shot...</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Quick action buttons */}
-      <div className="flex space-x-3">
-        <button
-          onClick={openFileSelector}
-          disabled={isLoading}
-          className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
-        >
-          <span>📁</span>
-          <span>Choose Photo</span>
-        </button>
-        
-        <button
-          onClick={() => {
-            // Create a new file input specifically for camera
-            const cameraInput = document.createElement('input');
-            cameraInput.type = 'file';
-            cameraInput.accept = 'image/*';
-            cameraInput.capture = 'environment';
-            cameraInput.onchange = (e) => {
-              const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) {
-                handleFileSelect(file);
-              }
-            };
-            cameraInput.click();
-          }}
-          disabled={isLoading}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
-        >
-          <span>📷</span>
-          <span>Take Photo</span>
-        </button>
-      </div>
-
-      {/* Tips */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-        <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">📋 Photo Tips:</h4>
-        <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-          <li>• Show the ball's position and lie clearly</li>
-          <li>• Include surrounding terrain (rough, fairway, hazards)</li>
-          <li>• Capture the distance to pin if visible</li>
-          <li>• Good lighting helps AI analysis accuracy</li>
-        </ul>
-      </div>
-    </div>
+        📷
+      </button>
+    </>
   );
 };
 
