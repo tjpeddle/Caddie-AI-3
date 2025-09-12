@@ -18,21 +18,20 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
     const mediaStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' }
     });
-    console.log('Got media stream:', mediaStream);
-    console.log('Video tracks:', mediaStream.getVideoTracks());
     
     setStream(mediaStream);
     setIsCapturing(true);
     
     if (videoRef.current) {
-      console.log('Setting video source...');
       videoRef.current.srcObject = mediaStream;
-      videoRef.current.play();
       
-      videoRef.current.onloadedmetadata = () => {
-        console.log('Video metadata loaded');
-        console.log('Video dimensions:', videoRef.current?.videoWidth, videoRef.current?.videoHeight);
-      };
+      // iOS Safari fix - force reload
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.load();
+          videoRef.current.play();
+        }
+      }, 100);
     }
   } catch (error) {
     console.error('Camera access failed:', error);
