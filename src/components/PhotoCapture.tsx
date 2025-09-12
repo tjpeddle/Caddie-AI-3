@@ -134,6 +134,14 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
         className="hidden"
       />
       <button
+        onClick={() => fileInputRef.current?.click()}
+        disabled={isLoading}
+        className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
+        title="Upload Photo"
+      >
+        📁
+      </button>
+      <button
         onClick={startCamera}
         disabled={isLoading}
         className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
