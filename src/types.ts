@@ -6,7 +6,7 @@
 export interface Message {
   role: Role;
   content: string;
-  image?: string; // Add this line for photo support
+  image?: string;  
 }
 
 export interface GolfData {
