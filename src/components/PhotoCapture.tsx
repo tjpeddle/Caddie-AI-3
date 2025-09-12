@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+ import React, { useRef, useState } from 'react';
 
 interface PhotoUploadProps {
   onPhotoTaken: (photoData: string, analysis: string) => void;
@@ -169,4 +169,4 @@ const PhotoUpload: React.FC<PhotoUploadProps> = ({ onPhotoTaken, isLoading }) =>
   );
 };
 
-export default PhotoUpload;
+export default PhotoCapture;
