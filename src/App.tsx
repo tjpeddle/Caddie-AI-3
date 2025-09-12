@@ -211,7 +211,6 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
     setIsPhotoLoading(false);
   }
 }, [golfData?.currentRoundId, setGolfData]);
- 
 const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
