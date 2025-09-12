@@ -40,12 +40,23 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
 };
 
   const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setIsCapturing(false);
-  };
+  console.log('Stopping camera...');
+  
+  if (stream) {
+    stream.getTracks().forEach(track => {
+      console.log('Stopping track:', track);
+      track.stop();
+    });
+    setStream(null);
+  }
+  
+  if (videoRef.current) {
+    videoRef.current.srcObject = null;
+  }
+  
+  setIsCapturing(false);
+  console.log('Camera stopped, isCapturing set to false');
+};
 
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
