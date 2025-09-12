@@ -168,13 +168,31 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
   setIsPhotoLoading(true);
   
   try {
+    const photoMessage: Message = { 
+      role: Role.USER, 
+      content: "📸 Golf hole photo uploaded for analysis",
+      image: photoData
+    };
+    
+    const currentRoundId = golfData.currentRoundId;
+    
+    setGolfData(prevData => {
+      if (!prevData) return null;
+      const currentMessages = prevData.rounds[currentRoundId] || [];
+      return {
+        ...prevData,
+        rounds: {
+          ...prevData.rounds,
+          [currentRoundId]: [...currentMessages, photoMessage],
+        },
+      };
+    });
+
     const analysisPrompt = `Analyze this golf hole and provide strategic advice. Look for hazards, green shape, pin position, best target areas, and club selection suggestions. Provide specific strategic advice for playing this hole.`;
     
-    const photoMessage = `[Photo Analysis] ${description}`;
-    const userMessage: Message = { role: Role.USER, content: photoMessage };
+    const response = await geminiService.sendMessage(analysisPrompt, [photoData]);
     
-    // Add user message
-    const currentRoundId = golfData.currentRoundId;
+    const aiMessage: Message = { role: Role.MODEL, content: response };
     setGolfData(prevData => {
       if (!prevData) return null;
       const currentMessages = prevData.rounds[currentRoundId] || [];
@@ -182,33 +200,17 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
         ...prevData,
         rounds: {
           ...prevData.rounds,
-          [currentRoundId]: [...currentMessages, userMessage],
+          [currentRoundId]: [...currentMessages, aiMessage],
         },
       };
     });
-    
-    const analysisText = await geminiService.sendMessage(analysisPrompt);
-    const analysisMessage: Message = { role: Role.MODEL, content: analysisText };
-    
-    setGolfData(prevData => {
-      if (!prevData) return null;
-      const currentMessages = prevData.rounds[currentRoundId] || [];
-      return {
-        ...prevData,
-        rounds: {
-          ...prevData.rounds,
-          [currentRoundId]: [...currentMessages, analysisMessage],
-        },
-      };
-    });
-    
-    speak(analysisText);
     
   } catch (error) {
     console.error('Photo analysis failed:', error);
   } finally {
     setIsPhotoLoading(false);
   }
+}, [golfData?.currentRoundId, setGolfData]);
 }, [golfData, speak]);
 const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
