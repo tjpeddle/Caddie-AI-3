@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface PhotoCaptureProps {
   onPhotoTaken: (photoData: string, analysis: string) => void;
@@ -7,69 +7,104 @@ interface PhotoCaptureProps {
 
 const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
   const [isCapturing, setIsCapturing] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   const startCamera = async () => {
-  console.log('Starting camera...');
-  try {
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }
-    });
+    console.log('Starting camera...');
+    setVideoReady(false);
     
-    setStream(mediaStream);
-    setIsCapturing(true);
-    
-    if (videoRef.current) {
-      videoRef.current.srcObject = mediaStream;
-      
-      // iOS Safari fix - force reload
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.load();
-          videoRef.current.play();
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
-      }, 100);
+      });
+      
+      console.log('Got media stream:', mediaStream);
+      setStream(mediaStream);
+      setIsCapturing(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        
+        // Critical: Wait for loadedmetadata before trying to play
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded');
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              console.log('Video playing successfully');
+              setVideoReady(true);
+            }).catch((playError) => {
+              console.error('Play failed:', playError);
+            });
+          }
+        };
+        
+        // Fallback timeout
+        setTimeout(() => {
+          if (videoRef.current && !videoReady) {
+            console.log('Fallback: forcing video play');
+            videoRef.current.play().catch(console.error);
+            setVideoReady(true);
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Camera access failed:', error);
+      fileInputRef.current?.click();
     }
-  } catch (error) {
-    console.error('Camera access failed:', error);
-    fileInputRef.current?.click();
-  }
-};
+  };
 
   const stopCamera = () => {
-  console.log('Stopping camera...');
-  
-  if (stream) {
-    stream.getTracks().forEach(track => {
-      console.log('Stopping track:', track);
-      track.stop();
-    });
-    setStream(null);
-  }
-  
-  if (videoRef.current) {
-    videoRef.current.srcObject = null;
-  }
-  
-  setIsCapturing(false);
-  console.log('Camera stopped, isCapturing set to false');
-};
+    console.log('Stopping camera...');
+    
+    if (stream) {
+      stream.getTracks().forEach(track => {
+        console.log('Stopping track:', track);
+        track.stop();
+      });
+      setStream(null);
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.onloadedmetadata = null;
+    }
+    
+    setIsCapturing(false);
+    setVideoReady(false);
+    console.log('Camera stopped');
+  };
 
   const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !videoReady) {
+      console.log('Cannot capture: video not ready');
+      return;
+    }
     
     const canvas = canvasRef.current;
     const video = videoRef.current;
     const context = canvas.getContext('2d');
+    
+    // Make sure video has dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      console.log('Video dimensions not ready');
+      return;
+    }
     
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     context?.drawImage(video, 0, 0);
     
     const photoData = canvas.toDataURL('image/jpeg', 0.8);
+    console.log('Photo captured, data length:', photoData.length);
+    
     stopCamera();
     onPhotoTaken(photoData, 'Photo captured for analysis');
   };
@@ -86,38 +121,60 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
     }
   };
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
   if (isCapturing) {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col">
-     <div className="flex-1 relative" style={{ backgroundColor: 'black' }}>
-  <video
-    ref={videoRef}
-    autoPlay
-    playsInline
-    muted
-    style={{
-      width: '100vw',
-      height: '100vh',
-      objectFit: 'cover',
-      position: 'absolute',
-      top: 0,
-      left: 0
-    }}
-  />
-  <canvas ref={canvasRef} className="hidden" />
-</div>
-        <div className="p-4 flex justify-center space-x-4">
+        <div className="flex-1 relative overflow-hidden">
+          {!videoReady && (
+            <div className="absolute inset-0 flex items-center justify-center text-white z-10">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <p>Loading camera...</p>
+              </div>
+            </div>
+          )}
+          
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-cover ${!videoReady ? 'opacity-0' : 'opacity-100'}`}
+            style={{
+              transform: 'scaleX(-1)', // Mirror for selfie-like experience
+            }}
+          />
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+        
+        <div className="p-6 flex justify-center space-x-6 bg-black">
           <button
             onClick={stopCamera}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg"
+            className="px-8 py-4 bg-gray-600 text-white rounded-full font-semibold text-lg"
+            style={{ touchAction: 'manipulation' }} // Prevents double-tap zoom
           >
             Cancel
           </button>
           <button
             onClick={capturePhoto}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg"
+            disabled={!videoReady}
+            className={`px-8 py-4 rounded-full font-semibold text-lg ${
+              videoReady 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-400 text-gray-200'
+            }`}
+            style={{ touchAction: 'manipulation' }}
           >
-            📸 Capture
+            📸 {videoReady ? 'Capture' : 'Loading...'}
           </button>
         </div>
       </div>
@@ -130,6 +187,7 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        capture="environment" // This helps on mobile
         onChange={handleFileSelect}
         className="hidden"
       />
@@ -138,6 +196,7 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
         disabled={isLoading}
         className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
         title="Take Photo of Hole"
+        style={{ touchAction: 'manipulation' }}
       >
         📷
       </button>
