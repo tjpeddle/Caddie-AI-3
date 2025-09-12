@@ -86,44 +86,6 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
     }
   };
 
-  if (isCapturing) {
-    return (
-      <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        <div className="flex-1 relative" style={{ backgroundColor: 'black' }}>
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{
-              width: '100vw',
-              height: '100vh',
-              objectFit: 'cover',
-              position: 'absolute',
-              top: 0,
-              left: 0
-            }}
-          />
-          <canvas ref={canvasRef} className="hidden" />
-        </div>
-        <div className="p-4 flex justify-center space-x-4">
-          <button
-            onClick={stopCamera}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={capturePhoto}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg"
-          >
-            📸 Capture
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <input
