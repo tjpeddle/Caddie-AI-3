@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+ import React, { useState, useRef, useEffect } from 'react';
 
 interface PhotoCaptureProps {
   onPhotoTaken: (photoData: string, analysis: string) => void;
