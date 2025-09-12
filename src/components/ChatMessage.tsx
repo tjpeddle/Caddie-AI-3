@@ -1,4 +1,4 @@
-import React from 'react';
+ import React from 'react';
 import { Message, Role } from '../types';
 
 interface ChatMessageProps {
@@ -35,19 +35,38 @@ const LoadingDots: React.FC = () => (
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ message, isLoading = false }) => {
   const isModel = message.role === Role.MODEL;
-
   const containerClasses = isModel
     ? 'flex items-start gap-3 justify-start'
     : 'flex items-start gap-3 justify-end';
-
   const bubbleClasses = isModel
     ? 'bg-gray-700 text-gray-100 rounded-r-lg rounded-bl-lg'
     : 'bg-blue-600 text-white rounded-l-lg rounded-br-lg';
-return (
+
+  return (
     <div className={containerClasses}>
       {isModel && <CaddieIcon />}
-     <div className={`max-w-md md:max-w-lg p-3 ${bubbleClasses} text-base break-words`}>
-        {isLoading ? <LoadingDots /> : <p className="whitespace-pre-wrap break-words">{message.content}</p>}
+      <div className={`max-w-md md:max-w-lg p-3 ${bubbleClasses} text-base break-words`}>
+        {isLoading ? (
+          <LoadingDots />
+        ) : (
+          <div className="space-y-2">
+            {/* Show photo if it exists */}
+            {message.image && (
+              <div className="mb-2">
+                <img 
+                  src={message.image} 
+                  alt="Golf hole photo" 
+                  className="max-w-full h-auto rounded-lg shadow-lg"
+                  style={{ maxHeight: '200px' }}
+                />
+              </div>
+            )}
+            {/* Show text content */}
+            {message.content && (
+              <p className="whitespace-pre-wrap break-words">{message.content}</p>
+            )}
+          </div>
+        )}
       </div>
       {!isModel && <UserIcon />}
     </div>
