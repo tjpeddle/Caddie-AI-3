@@ -157,18 +157,41 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
           <canvas ref={canvasRef} className="hidden" />
         </div>
         
-        <div className="p-6 flex justify-center space-x-6 bg-black">
+        <div className="p-6 flex justify-center space-x-4 bg-black">
           <button
             onClick={stopCamera}
-            className="px-8 py-4 bg-gray-600 text-white rounded-full font-semibold text-lg"
-            style={{ touchAction: 'manipulation' }} // Prevents double-tap zoom
+            className="px-6 py-3 bg-gray-600 text-white rounded-full font-semibold"
+            style={{ touchAction: 'manipulation' }}
           >
             Cancel
           </button>
           <button
+            onClick={() => {
+              const video = videoRef.current;
+              if (video) {
+                console.log('=== VIDEO DEBUG ===');
+                console.log('ReadyState:', video.readyState);
+                console.log('Dimensions:', video.videoWidth, 'x', video.videoHeight);
+                console.log('CurrentTime:', video.currentTime);
+                console.log('Paused:', video.paused);
+                console.log('Ended:', video.ended);
+                console.log('NetworkState:', video.networkState);
+                console.log('SrcObject:', !!video.srcObject);
+                console.log('Stream active:', stream?.active);
+                console.log('Stream tracks:', stream?.getTracks().length);
+                // Force it to work
+                setVideoReady(true);
+              }
+            }}
+            className="px-6 py-3 bg-blue-600 text-white rounded-full font-semibold"
+            style={{ touchAction: 'manipulation' }}
+          >
+            Debug & Force
+          </button>
+          <button
             onClick={capturePhoto}
             disabled={!videoReady}
-            className={`px-8 py-4 rounded-full font-semibold text-lg ${
+            className={`px-6 py-3 rounded-full font-semibold ${
               videoReady 
                 ? 'bg-green-600 text-white' 
                 : 'bg-gray-400 text-gray-200'
