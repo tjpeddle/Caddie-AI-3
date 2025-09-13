@@ -526,6 +526,33 @@ useEffect(() => {
         isLoading={isLoading}
       />
       
+      {showDebug && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-800 rounded-lg p-4 max-w-md w-full max-h-96 overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-white">Debug Log</h3>
+              <button
+                onClick={() => setShowDebug(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-1 text-xs text-gray-300">
+              {debugLog.map((log, index) => (
+                <div key={index} className="font-mono">{log}</div>
+              ))}
+            </div>
+            <button
+              onClick={() => setDebugLog([])}
+              className="mt-4 px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white text-sm"
+            >
+              Clear Log
+            </button>
+          </div>
+        </div>
+      )}
+      
       {golfData?.currentRoundId && golfData.roundStats?.[golfData.currentRoundId] && (
         <Scorecard
           roundStats={golfData.roundStats[golfData.currentRoundId]}
