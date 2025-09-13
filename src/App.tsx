@@ -15,7 +15,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [text, setText] = useState(''); // Lifted state from InputBar
+  const [text, setText] = useState('');
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
@@ -30,13 +30,11 @@ const App: React.FC = () => {
     return golfData.rounds[golfData.currentRoundId] || [];
   }, [golfData]);
 
-  // Load history from localStorage or show welcome screen on initial load
   useEffect(() => {
     try {
       const savedHistory = localStorage.getItem(STORAGE_KEY);
       if (savedHistory) {
         const data = JSON.parse(savedHistory) as GolfData;
-        // Ensure roundStats exists for backward compatibility
         if (!data.roundStats) {
           data.roundStats = {};
         }
@@ -53,19 +51,16 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save history to localStorage whenever it changes
   useEffect(() => {
     if (golfData) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(golfData));
     }
   }, [golfData]);
- 
-  // Load available voices
+
   useEffect(() => {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       setAvailableVoices(voices);
-      // Set default voice (first English voice or first voice)
       const defaultVoice = voices.find(voice => voice.lang.startsWith('en')) || voices[0];
       setSelectedVoice(defaultVoice);
     };
@@ -84,7 +79,6 @@ const App: React.FC = () => {
         utterance.volume = 1.0;
         utterance.pitch = 1.0;
         
-        // Use selected voice
         if (selectedVoice) {
           utterance.voice = selectedVoice;
         }
@@ -121,7 +115,6 @@ const App: React.FC = () => {
   const processScoreData = useCallback((text: string, currentRoundId: string) => {
     if (!golfData?.roundStats[currentRoundId]) return;
     
-    // Simple pattern matching for common golf phrases
     const holeMatch = text.match(/hole (\d+)/i);
     const parMatch = text.match(/par (\d+)/i);
     const fairwayHit = /hit.*fairway|found.*fairway/i.test(text);
@@ -164,10 +157,7 @@ const App: React.FC = () => {
   }, [golfData]);
 
   const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
-    console.log('Photo taken - starting process');
-    
     if (!golfData?.currentRoundId) {
-      console.log('No current round ID, exiting');
       return;
     }
     
@@ -181,9 +171,7 @@ const App: React.FC = () => {
       };
       
       const currentRoundId = golfData.currentRoundId;
-      console.log('Adding photo message');
       
-      // Add photo message to chat
       setGolfData(prevData => {
         if (!prevData) return null;
         const currentMessages = prevData.rounds[currentRoundId] || [];
@@ -196,15 +184,10 @@ const App: React.FC = () => {
         };
       });
 
-      console.log('Photo message added, starting AI analysis...');
-
-      // Try to analyze with AI
       const analysisPrompt = `Analyze this golf hole and provide strategic advice. Look for hazards, green shape, pin position, best target areas, and club selection suggestions. Provide specific strategic advice for playing this hole.`;
       
       try {
         const response = await geminiService.sendMessage(analysisPrompt, [photoData]);
-        console.log('AI analysis completed');
-        
         const aiMessage: Message = { role: Role.MODEL, content: response };
         setGolfData(prevData => {
           if (!prevData) return null;
@@ -221,8 +204,6 @@ const App: React.FC = () => {
         speak(response);
         
       } catch (geminiError) {
-        console.error('AI analysis failed:', geminiError);
-        // AI analysis failed, but photo is still uploaded
         const errorMessage: Message = { 
           role: Role.MODEL, 
           content: "I can see your photo was uploaded, but I'm having trouble analyzing it right now. You can describe the hole to me instead!" 
@@ -246,7 +227,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Photo handling failed:', error);
     } finally {
-      console.log('Photo process complete');
       setIsPhotoLoading(false);
     }
   }, [golfData?.currentRoundId, setGolfData, speak]);
@@ -256,7 +236,6 @@ const App: React.FC = () => {
 
     const userMessage: Message = { role: Role.USER, content: inputText };
     
-    // Optimistically update UI
     const currentRoundId = golfData.currentRoundId;
     setGolfData(prevData => {
       if (!prevData) return null;
@@ -277,7 +256,6 @@ const App: React.FC = () => {
       const responseText = await geminiService.sendMessage(inputText);
       const modelMessage: Message = { role: Role.MODEL, content: responseText };
 
-      // Process scoring data from user input and AI response
       processScoreData(inputText + " " + responseText, currentRoundId);
 
       setGolfData(prevData => {
@@ -324,16 +302,14 @@ const App: React.FC = () => {
     const messageToSend = message.trim();
     if (messageToSend) {
       handleUserInput(messageToSend);
-      setText(''); // Clear the input
+      setText('');
       
-      // Force stop speech recognition if it's active
       if (isListening) {
         stopListening();
       }
       
-      // Additional cleanup for speech recognition
       setTimeout(() => {
-        setText(''); // Clear again after a short delay
+        setText('');
       }, 100);
     }
   }, [handleUserInput, isListening, stopListening]);
@@ -345,18 +321,13 @@ const App: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-    // Request wake lock when app starts
     requestWakeLock();
-    
-    // Re-request if visibility changes
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         requestWakeLock();
       }
     };
-    
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
       releaseWakeLock();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -378,7 +349,6 @@ const App: React.FC = () => {
     let updatedData: GolfData;
 
     if (!golfData) {
-      // First round ever
       welcomeMessage = "Hey, I'm your AI Caddie! I'll remember how you play to give you the best advice. What's the situation on your first hole?";
       initialMessage = { role: Role.MODEL, content: welcomeMessage };
       updatedData = {
@@ -394,7 +364,6 @@ const App: React.FC = () => {
         currentRoundId: newRoundId,
       };
     } else {
-      // Subsequent new round
       welcomeMessage = "Alright, new round! I've got all your past shots in my memory. Let's get started. Tell me about the first hole.";
       initialMessage = { role: Role.MODEL, content: welcomeMessage };
       updatedData = {
@@ -425,7 +394,7 @@ const App: React.FC = () => {
   }, [golfData, speak]);
 
   if (!golfData && !showWelcome) {
-    return null; // Initial loading state
+    return null;
   }
 
   if (showWelcome) {
@@ -449,7 +418,6 @@ const App: React.FC = () => {
         {error && <p className="text-red-400 text-center">{error}</p>}
       </main>
       
-      {/* Voice Settings */}
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
@@ -476,7 +444,6 @@ const App: React.FC = () => {
               <div className="absolute bottom-12 right-0 bg-gray-800 rounded-lg p-4 min-w-48 shadow-lg">
                 <h3 className="text-white mb-2">Voice Options</h3>
                 
-                {/* Speed Control */}
                 <div className="mb-4 pb-4 border-b border-gray-600">
                   <label className="text-white text-sm mb-2 block">
                     Speed: {voiceSpeed.toFixed(1)}x
@@ -542,3 +509,4 @@ const App: React.FC = () => {
 };
 
 export default App;
+
