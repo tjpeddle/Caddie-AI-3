@@ -30,6 +30,7 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
 
   return (
     <>
+      {/* Camera input */}
       <input
         ref={fileInputRef}
         type="file"
@@ -38,16 +39,45 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
         onChange={handleFileSelect}
         className="hidden"
       />
+      {/* Photo library input */}
+      <input
+        ref={useRef<HTMLInputElement>(null)}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
       <button
         onClick={() => {
-          console.log('🔥 Upload button clicked');
+          console.log('📁 Browse photos button clicked');
+          // Create a new input for photo library access
+          const libraryInput = document.createElement('input');
+          libraryInput.type = 'file';
+          libraryInput.accept = 'image/*';
+          libraryInput.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+              handleFileSelect({ target: { files: [file] } } as any);
+            }
+          };
+          libraryInput.click();
+        }}
+        disabled={isLoading}
+        className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
+        title="Browse Photos"
+      >
+        📁
+      </button>
+      <button
+        onClick={() => {
+          console.log('📷 Take photo button clicked');
           fileInputRef.current?.click();
         }}
         disabled={isLoading}
         className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
-        title="Upload Photo"
+        title="Take Photo"
       >
-        📁
+        📷
       </button>
     </>
   );
