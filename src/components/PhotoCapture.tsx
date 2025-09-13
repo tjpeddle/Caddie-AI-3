@@ -1,4 +1,4 @@
- import React, { useRef } from 'react';
+  import React, { useRef } from 'react';
 
 interface PhotoCaptureProps {
   onPhotoTaken: (photoData: string, analysis: string) => void;
