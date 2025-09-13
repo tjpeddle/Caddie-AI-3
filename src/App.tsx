@@ -195,6 +195,22 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
       response = await geminiService.sendMessage(analysisPrompt, [photoData]);
     } catch (geminiError) {
       console.error('Gemini service failed:', geminiError);
+      // Add a helpful error message to chat instead of failing silently
+      const errorMessage: Message = { 
+        role: Role.MODEL, 
+        content: "I can see your photo but I'm having trouble analyzing it right now. The image uploaded successfully though! Try asking me about your golf situation with text for now." 
+      };
+      setGolfData(prevData => {
+        if (!prevData) return null;
+        const currentMessages = prevData.rounds[currentRoundId] || [];
+        return {
+          ...prevData,
+          rounds: {
+            ...prevData.rounds,
+            [currentRoundId]: [...currentMessages, errorMessage],
+          },
+        };
+      });
       setIsPhotoLoading(false);
       return;
     }
@@ -216,6 +232,7 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
     
   } catch (error) {
     console.error('Photo analysis failed:', error);
+    setIsPhotoLoading(false);
   } finally {
     setIsPhotoLoading(false);
   }
