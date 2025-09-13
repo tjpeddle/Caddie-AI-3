@@ -6,40 +6,39 @@ interface PhotoCaptureProps {
 }
 
 const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      console.log('🔥 File selected:', file.name, file.size, file.type);
+      console.log('File selected:', file.name, file.size, file.type);
       const reader = new FileReader();
       reader.onload = (e) => {
         const photoData = e.target?.result as string;
-        console.log('🔥 Photo data loaded, length:', photoData.length);
-        console.log('🔥 Photo data starts with:', photoData.substring(0, 50));
+        console.log('Photo data loaded, length:', photoData.length);
         onPhotoTaken(photoData, 'Photo uploaded for analysis');
       };
       reader.onerror = (error) => {
-        console.error('🔥 File reading error:', error);
+        console.error('File reading error:', error);
       };
       reader.readAsDataURL(file);
-    } else {
-      console.log('🔥 No file selected');
     }
   };
 
   return (
     <>
-      {/* Camera input */}
+      {/* Camera input with capture */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         onChange={handleFileSelect}
         className="hidden"
       />
-      {/* Photo library input */}
+      
+      {/* Library input without capture */}
       <input
         ref={libraryInputRef}
         type="file"
@@ -47,9 +46,10 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
         onChange={handleFileSelect}
         className="hidden"
       />
+      
       <button
         onClick={() => {
-          console.log('📁 Browse photos button clicked');
+          console.log('Library button clicked');
           libraryInputRef.current?.click();
         }}
         disabled={isLoading}
@@ -58,10 +58,11 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
       >
         📁
       </button>
+      
       <button
         onClick={() => {
-          console.log('📷 Take photo button clicked');
-          fileInputRef.current?.click();
+          console.log('Camera button clicked');
+          cameraInputRef.current?.click();
         }}
         disabled={isLoading}
         className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
