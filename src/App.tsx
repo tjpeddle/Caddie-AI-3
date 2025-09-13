@@ -24,7 +24,7 @@ const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [wakeLock, setWakeLock] = useState<any>(null);
   const [showScorecard, setShowScorecard] = useState(false);
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
     if (!golfData || !golfData.currentRoundId) return [];
@@ -60,7 +60,27 @@ const [showVoiceSettings, setShowVoiceSettings] = useState(false);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(golfData));
     }
   }, [golfData]);
+useEffect(() => {
+  // Listen for uncaught exceptions
+  const handleError = (event: ErrorEvent) => {
+    addLog(`Global Error: ${event.message}`);
+    addLog(`Stack: ${event.error?.stack || 'No stack available'}`);
+  };
 
+  // Listen for unhandled promise rejections
+  const handleRejection = (event: PromiseRejectionEvent) => {
+    addLog(`Unhandled Rejection: ${event.reason}`);
+  };
+
+  window.addEventListener('error', handleError);
+  window.addEventListener('unhandledrejection', handleRejection);
+
+  // Clean up the event listeners on component unmount
+  return () => {
+    window.removeEventListener('error', handleError);
+    window.removeEventListener('unhandledrejection', handleRejection);
+  };
+}, [addLog]); // addLog is a dependency for this effect
   // Load available voices
 useEffect(() => {
   const loadVoices = () => {
