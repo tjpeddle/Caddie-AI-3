@@ -1,101 +1,97 @@
- import React, { useRef } from 'react';
+import React, { useRef, ChangeEvent } from 'react';
 
 interface PhotoCaptureProps {
-  onPhotoTaken: (photoData: string, analysis: string) => void;
+  onPhotoTaken: (base64Photo: string, description: string) => void;
   isLoading: boolean;
 }
 
 const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('File select triggered');
-    const file = event.target.files?.[0];
-    
-    if (!file) {
-      console.log('No file selected');
-      return;
-    }
+  // Function to resize the image using a canvas
+  const resizeImage = (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
 
-    console.log('File selected:', file.name, file.type, file.size);
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
 
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      console.log('FileReader onload triggered');
-      const photoData = e.target?.result as string;
-      
-      if (photoData) {
-        console.log('Photo data exists, length:', photoData.length);
-        console.log('About to call onPhotoTaken...');
-        
-        try {
-          onPhotoTaken(photoData, 'Photo uploaded for analysis');
-          console.log('onPhotoTaken called successfully');
-        } catch (error) {
-          console.error('Error calling onPhotoTaken:', error);
-        }
-      } else {
-        console.log('No photo data');
-      }
-    };
-    
-    reader.onerror = (error) => {
-      console.error('FileReader error:', error);
-    };
-    
-    console.log('Starting to read file...');
-    reader.readAsDataURL(file);
-    
-    // Reset input
-    event.target.value = '';
+          // Resize logic to maintain aspect ratio
+          if (width > height) {
+            if (width > maxWidth) {
+              height *= maxWidth / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width *= maxHeight / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            // Convert the resized image on the canvas to a base64 string
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 0.7 is the quality
+            resolve(dataUrl);
+          } else {
+            reject(new Error("Could not get canvas context."));
+          }
+        };
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const openPhotoSelector = () => {
+  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // Step 1: Resize the image before sending it
+      const resizedPhotoData = await resizeImage(file, 1200, 1200);
+
+      // Step 2: Pass the resized base64 string to your parent component
+      onPhotoTaken(resizedPhotoData, "A photo of the golf course.");
+    } catch (error) {
+      console.error('Error processing photo:', error);
+      // You can add an error message to the chat here as well
+    }
+  };
+
+  const handleClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
   return (
-    <>
+    <div>
       <input
-        ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={handleFileSelect}
+        capture="environment"
+        ref={fileInputRef}
+        onChange={handleFileChange}
         style={{ display: 'none' }}
       />
       <button
-        onClick={openPhotoSelector}
-        disabled={isLoading}
-        className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
-        title="Upload Photo"
-      >
-        📁
-      </button>
-      <button
-        onClick={() => {
-          // Create camera input dynamically for iOS
-          const cameraInput = document.createElement('input');
-          cameraInput.type = 'file';
-          cameraInput.accept = 'image/*';
-          cameraInput.capture = 'environment';
-          cameraInput.onchange = (e) => {
-            const file = (e.target as HTMLInputElement).files?.[0];
-            if (file) {
-              handleFileSelect({ target: { files: [file] } } as any);
-            }
-          };
-          cameraInput.click();
-        }}
-        disabled={isLoading}
+        onClick={handleClick}
         className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
         title="Take Photo"
+        disabled={isLoading}
       >
-        📷
+        📸
       </button>
-    </>
+    </div>
   );
 };
 
