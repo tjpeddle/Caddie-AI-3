@@ -204,14 +204,16 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
         },
       };
     });
+
+    speak(response);
     
   } catch (error) {
     console.error('Photo analysis failed:', error);
   } finally {
     setIsPhotoLoading(false);
   }
-}, [golfData?.currentRoundId, setGolfData]);
-  
+}, [golfData?.currentRoundId, setGolfData, speak]);
+
 const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
