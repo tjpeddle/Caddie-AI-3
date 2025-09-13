@@ -60,27 +60,7 @@ const [showVoiceSettings, setShowVoiceSettings] = useState(false);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(golfData));
     }
   }, [golfData]);
-useEffect(() => {
-  // Listen for uncaught exceptions
-  const handleError = (event: ErrorEvent) => {
-    addLog(`Global Error: ${event.message}`);
-    addLog(`Stack: ${event.error?.stack || 'No stack available'}`);
-  };
-
-  // Listen for unhandled promise rejections
-  const handleRejection = (event: PromiseRejectionEvent) => {
-    addLog(`Unhandled Rejection: ${event.reason}`);
-  };
-
-  window.addEventListener('error', handleError);
-  window.addEventListener('unhandledrejection', handleRejection);
-
-  // Clean up the event listeners on component unmount
-  return () => {
-    window.removeEventListener('error', handleError);
-    window.removeEventListener('unhandledrejection', handleRejection);
-  };
-}, [addLog]); // addLog is a dependency for this effect
+ 
   // Load available voices
 useEffect(() => {
   const loadVoices = () => {
@@ -182,22 +162,21 @@ const processScoreData = useCallback((text: string, currentRoundId: string) => {
     });
   }
 }, [golfData]);
-const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
+ const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
   if (!golfData?.currentRoundId) return;
-
-  // IMPORTANT: Set loading state immediately
+  
   setIsPhotoLoading(true);
-
+  
   try {
-    const photoMessage: Message = {
-      role: Role.USER,
+    const photoMessage: Message = { 
+      role: Role.USER, 
       content: "📸 Golf hole photo uploaded for analysis",
       image: photoData
     };
-
+    
     const currentRoundId = golfData.currentRoundId;
     
-    // Optimistic UI update - this part works
+    // Add photo message to chat
     setGolfData(prevData => {
       if (!prevData) return null;
       const currentMessages = prevData.rounds[currentRoundId] || [];
@@ -210,12 +189,11 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
       };
     });
 
+    // Try to analyze with AI
     const analysisPrompt = `Analyze this golf hole and provide strategic advice. Look for hazards, green shape, pin position, best target areas, and club selection suggestions. Provide specific strategic advice for playing this hole.`;
     
-    let response;
     try {
-      // This is the line that is likely failing
-      response = await geminiService.sendMessage(analysisPrompt, [photoData]);
+      const response = await geminiService.sendMessage(analysisPrompt, [photoData]);
       
       const aiMessage: Message = { role: Role.MODEL, content: response };
       setGolfData(prevData => {
@@ -229,16 +207,16 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
           },
         };
       });
+      
       speak(response);
-
+      
     } catch (geminiError) {
-      // This block is likely what is not working as expected
-      console.error('Gemini service failed:', geminiError);
-      // Let's explicitly log the error to the chat
-      const errorMessage: Message = {
-        role: Role.MODEL,
-        content: "An error occurred while analyzing the photo. The AI is unavailable right now."
+      // AI analysis failed, but photo is still uploaded
+      const errorMessage: Message = { 
+        role: Role.MODEL, 
+        content: "I can see your photo was uploaded, but I'm having trouble analyzing it right now. You can describe the hole to me instead!" 
       };
+      
       setGolfData(prevData => {
         if (!prevData) return null;
         const currentMessages = prevData.rounds[currentRoundId] || [];
@@ -250,19 +228,16 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
           },
         };
       });
-      // Ensure loading state is turned off
-      setIsPhotoLoading(false);
-      return;
+      
+      speak("Photo uploaded, but having trouble with analysis. Describe the hole to me instead!");
     }
-
+    
   } catch (error) {
-    console.error('An unexpected error occurred in handlePhotoTaken:', error);
+    console.error('Photo handling failed:', error);
   } finally {
-    // THIS LINE IS CRUCIAL TO ENSURE THE LOADING STATE IS OFF
     setIsPhotoLoading(false);
   }
-}, [golfData?.currentRoundId, setGolfData, speak, isPhotoLoading]); // Add isPhotoLoading to dependencies
-
+}, [golfData?.currentRoundId, setGolfData, speak]);
 const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
