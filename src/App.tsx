@@ -190,7 +190,14 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
 
     const analysisPrompt = `Analyze this golf hole and provide strategic advice. Look for hazards, green shape, pin position, best target areas, and club selection suggestions. Provide specific strategic advice for playing this hole.`;
     
-    const response = await geminiService.sendMessage(analysisPrompt, [photoData]);
+    let response;
+    try {
+      response = await geminiService.sendMessage(analysisPrompt, [photoData]);
+    } catch (geminiError) {
+      console.error('Gemini service failed:', geminiError);
+      setIsPhotoLoading(false);
+      return;
+    }
     
     const aiMessage: Message = { role: Role.MODEL, content: response };
     setGolfData(prevData => {
