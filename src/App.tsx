@@ -430,17 +430,29 @@ useEffect(() => {
           <ChatMessage key={index} message={msg} />
         ))}
         {isLoading && <ChatMessage message={{ role: Role.MODEL, content: '...' }} isLoading={true} />}
-        {error && <p className="text-red-400 text-center">{error}</p>}
+        {error && (
+          <div className="text-red-400 text-center p-4 bg-red-900/20 rounded-lg">
+            <p>{error}</p>
+            <button 
+              onClick={() => setError(null)} 
+              className="mt-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </main>
       
       {/* Voice Settings */}
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
-            <PhotoCapture 
-              onPhotoTaken={handlePhotoTaken}
-              isLoading={isPhotoLoading}
-            />
+            {golfData?.currentRoundId && (
+              <PhotoCapture 
+                onPhotoTaken={handlePhotoTaken}
+                isLoading={isPhotoLoading}
+              />
+            )}
             <button
               onClick={() => setShowScorecard(true)}
               className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
@@ -457,7 +469,7 @@ useEffect(() => {
             </button>
             
             {showVoiceSettings && (
-              <div className="absolute bottom-12 right-0 bg-gray-800 rounded-lg p-4 min-w-48 shadow-lg">
+              <div className="absolute bottom-12 right-0 bg-gray-800 rounded-lg p-4 min-w-48 shadow-lg z-50">
                 <h3 className="text-white mb-2">Voice Options</h3>
                 
                 {/* Speed Control */}
@@ -514,7 +526,7 @@ useEffect(() => {
         isLoading={isLoading}
       />
       
-      {golfData?.currentRoundId && golfData.roundStats[golfData.currentRoundId] && (
+      {golfData?.currentRoundId && golfData.roundStats?.[golfData.currentRoundId] && (
         <Scorecard
           roundStats={golfData.roundStats[golfData.currentRoundId]}
           isVisible={showScorecard}
