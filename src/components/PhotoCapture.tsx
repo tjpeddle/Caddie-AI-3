@@ -10,31 +10,37 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
   const libraryInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🔍 handleFileSelect called');
+    console.log('handleFileSelect called');
     const file = event.target.files?.[0];
     
     if (file) {
-      console.log('🔍 File found:', file.name, file.size, file.type);
-      const reader = new FileReader();
+      console.log('File found:', file.name, file.size, file.type);
       
-      reader.onload = (e) => {
-        const photoData = e.target?.result as string;
-        console.log('🔍 Photo data loaded, length:', photoData.length);
-        console.log('🔍 Calling onPhotoTaken...');
-        onPhotoTaken(photoData, 'Photo uploaded for analysis');
-        console.log('🔍 onPhotoTaken called successfully');
-      };
-      
-      reader.onerror = (error) => {
-        console.error('🔍 File reading error:', error);
-      };
-      
-      reader.readAsDataURL(file);
+      // iOS Safari sometimes needs a delay
+      setTimeout(() => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+          const photoData = e.target?.result as string;
+          console.log('Photo loaded, calling onPhotoTaken');
+          
+          // Another small delay for iOS
+          setTimeout(() => {
+            onPhotoTaken(photoData, 'Photo uploaded for analysis');
+          }, 100);
+        };
+        
+        reader.onerror = (error) => {
+          console.error('File reading error:', error);
+        };
+        
+        reader.readAsDataURL(file);
+      }, 200);
     } else {
-      console.log('🔍 No file found in event');
+      console.log('No file found');
     }
     
-    // Clear the input so the same file can be selected again
+    // Clear input
     event.target.value = '';
   };
 
