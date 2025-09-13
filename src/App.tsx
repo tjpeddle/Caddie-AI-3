@@ -164,18 +164,20 @@ const processScoreData = useCallback((text: string, currentRoundId: string) => {
 }, [golfData]);
 const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
   if (!golfData?.currentRoundId) return;
-  
+
+  // IMPORTANT: Set loading state immediately
   setIsPhotoLoading(true);
-  
+
   try {
-    const photoMessage: Message = { 
-      role: Role.USER, 
+    const photoMessage: Message = {
+      role: Role.USER,
       content: "📸 Golf hole photo uploaded for analysis",
       image: photoData
     };
-    
+
     const currentRoundId = golfData.currentRoundId;
     
+    // Optimistic UI update - this part works
     setGolfData(prevData => {
       if (!prevData) return null;
       const currentMessages = prevData.rounds[currentRoundId] || [];
@@ -192,13 +194,30 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
     
     let response;
     try {
+      // This is the line that is likely failing
       response = await geminiService.sendMessage(analysisPrompt, [photoData]);
+      
+      const aiMessage: Message = { role: Role.MODEL, content: response };
+      setGolfData(prevData => {
+        if (!prevData) return null;
+        const currentMessages = prevData.rounds[currentRoundId] || [];
+        return {
+          ...prevData,
+          rounds: {
+            ...prevData.rounds,
+            [currentRoundId]: [...currentMessages, aiMessage],
+          },
+        };
+      });
+      speak(response);
+
     } catch (geminiError) {
+      // This block is likely what is not working as expected
       console.error('Gemini service failed:', geminiError);
-      // Add a helpful error message to chat instead of failing silently
-      const errorMessage: Message = { 
-        role: Role.MODEL, 
-        content: "I can see your photo but I'm having trouble analyzing it right now. The image uploaded successfully though! Try asking me about your golf situation with text for now." 
+      // Let's explicitly log the error to the chat
+      const errorMessage: Message = {
+        role: Role.MODEL,
+        content: "An error occurred while analyzing the photo. The AI is unavailable right now."
       };
       setGolfData(prevData => {
         if (!prevData) return null;
@@ -211,32 +230,18 @@ const handlePhotoTaken = useCallback(async (photoData: string, description: stri
           },
         };
       });
+      // Ensure loading state is turned off
       setIsPhotoLoading(false);
       return;
     }
-    
-    const aiMessage: Message = { role: Role.MODEL, content: response };
-    setGolfData(prevData => {
-      if (!prevData) return null;
-      const currentMessages = prevData.rounds[currentRoundId] || [];
-      return {
-        ...prevData,
-        rounds: {
-          ...prevData.rounds,
-          [currentRoundId]: [...currentMessages, aiMessage],
-        },
-      };
-    });
 
-    speak(response);
-    
   } catch (error) {
-    console.error('Photo analysis failed:', error);
-    setIsPhotoLoading(false);
+    console.error('An unexpected error occurred in handlePhotoTaken:', error);
   } finally {
+    // THIS LINE IS CRUCIAL TO ENSURE THE LOADING STATE IS OFF
     setIsPhotoLoading(false);
   }
-}, [golfData?.currentRoundId, setGolfData, speak]);
+}, [golfData?.currentRoundId, setGolfData, speak, isPhotoLoading]); // Add isPhotoLoading to dependencies
 
 const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
