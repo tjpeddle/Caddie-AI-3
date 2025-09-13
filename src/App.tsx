@@ -1,5 +1,4 @@
- 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Message, Role, GolfData } from './types';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition.ts';
 import { geminiService } from './services/geminiService';
@@ -292,7 +291,7 @@ setGolfData(prevData => {
         return {
             ...prevData,
             rounds: {
-                ...prevData.rounds,
+                ...prevData.rows,
                 [currentRoundId]: [...currentMessages, errorModelMessage],
             },
         };
@@ -433,51 +432,53 @@ useEffect(() => {
         {isLoading && <ChatMessage message={{ role: Role.MODEL, content: '...' }} isLoading={true} />}
         {error && <p className="text-red-400 text-center">{error}</p>}
       </main>
-      {/* Voice Settings - ADD THIS WHOLE SECTION */}
+      
+      {/* Voice Settings */}
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
-            <div className="relative">
-  <PhotoCapture 
-    onPhotoTaken={handlePhotoTaken}
-    isLoading={isPhotoLoading}
-  />
-             <button
-    onClick={() => setShowScorecard(true)}
-    className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
-    title="View Scorecard"
-  >
-    📋
-  </button>
+            <PhotoCapture 
+              onPhotoTaken={handlePhotoTaken}
+              isLoading={isPhotoLoading}
+            />
+            <button
+              onClick={() => setShowScorecard(true)}
+              className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
+              title="View Scorecard"
+            >
+              📋
+            </button>
             <button
               onClick={() => setShowVoiceSettings(!showVoiceSettings)}
               className="p-2 text-gray-400 hover:text-white transition-colors"
               title="Voice Settings"
             >
-             ⚙️
+              ⚙️
             </button>
             
             {showVoiceSettings && (
               <div className="absolute bottom-12 right-0 bg-gray-800 rounded-lg p-4 min-w-48 shadow-lg">
-                <h3 className="text-white mb-2">Voice Options</h3>{/* Speed Control */}
-<div className="mb-4 pb-4 border-b border-gray-600">
-  <label className="text-white text-sm mb-2 block">
-    Speed: {voiceSpeed.toFixed(1)}x
-  </label>
-  <input
-    type="range"
-    min="0.5"
-    max="2.0"
-    step="0.1"
-    value={voiceSpeed}
-    onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
-    className="w-full"
-  />
-  <div className="flex justify-between text-xs text-gray-400 mt-1">
-    <span>Slow</span>
-    <span>Fast</span>
-  </div>
-</div>
+                <h3 className="text-white mb-2">Voice Options</h3>
+                
+                {/* Speed Control */}
+                <div className="mb-4 pb-4 border-b border-gray-600">
+                  <label className="text-white text-sm mb-2 block">
+                    Speed: {voiceSpeed.toFixed(1)}x
+                  </label>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={voiceSpeed}
+                    onChange={(e) => setVoiceSpeed(parseFloat(e.target.value))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Slow</span>
+                    <span>Fast</span>
+                  </div>
+                </div>
                 
                 <div className="max-h-40 overflow-y-auto">
                   {availableVoices.map((voice, index) => (
@@ -499,7 +500,7 @@ useEffect(() => {
                 </div>
               </div>
             )}
-     </div>
+          </div>
         </div>
       </div>
       
@@ -520,9 +521,7 @@ useEffect(() => {
           onClose={() => setShowScorecard(false)}
         />
       )}
-      
-   </div>
-    </div>   
+    </div>
   );
 };
 
