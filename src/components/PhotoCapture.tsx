@@ -1,4 +1,4 @@
-import React, { useRef, ChangeEvent } from 'react';
+ import React, { useRef, ChangeEvent } from 'react';
 
 interface PhotoCaptureProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -8,7 +8,7 @@ interface PhotoCaptureProps {
 const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Function to resize the image using a canvas
+  // Function to resize the image
   const resizeImage = (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -21,7 +21,6 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
           let width = img.width;
           let height = img.height;
 
-          // Resize logic to maintain aspect ratio
           if (width > height) {
             if (width > maxWidth) {
               height *= maxWidth / width;
@@ -39,32 +38,36 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            // Convert the resized image on the canvas to a base64 string
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.7); // 0.7 is the quality
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
             resolve(dataUrl);
           } else {
             reject(new Error("Could not get canvas context."));
           }
         };
       };
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   };
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected after camera pop-up.');
+      return;
+    }
+
+    console.log('File selected:', file.name, 'Size:', file.size);
 
     try {
-      // Step 1: Resize the image before sending it
       const resizedPhotoData = await resizeImage(file, 1200, 1200);
-
-      // Step 2: Pass the resized base64 string to your parent component
       onPhotoTaken(resizedPhotoData, "A photo of the golf course.");
     } catch (error) {
-      console.error('Error processing photo:', error);
-      // You can add an error message to the chat here as well
+      console.error('Error processing or resizing photo:', error);
     }
+
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
   };
 
   const handleClick = () => {
@@ -74,24 +77,24 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
   };
 
   return (
-    <div>
+    <>
       <input
+        ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
-        ref={fileInputRef}
+        capture="environment" // This attribute tells the browser to prioritize the camera
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
       <button
         onClick={handleClick}
+        disabled={isLoading}
         className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
         title="Take Photo"
-        disabled={isLoading}
       >
-        📸
+        📷
       </button>
-    </div>
+    </>
   );
 };
 
