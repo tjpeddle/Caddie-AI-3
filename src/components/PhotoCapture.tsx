@@ -10,20 +10,32 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
   const libraryInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🔍 handleFileSelect called');
     const file = event.target.files?.[0];
+    
     if (file) {
-      console.log('File selected:', file.name, file.size, file.type);
+      console.log('🔍 File found:', file.name, file.size, file.type);
       const reader = new FileReader();
+      
       reader.onload = (e) => {
         const photoData = e.target?.result as string;
-        console.log('Photo data loaded, length:', photoData.length);
+        console.log('🔍 Photo data loaded, length:', photoData.length);
+        console.log('🔍 Calling onPhotoTaken...');
         onPhotoTaken(photoData, 'Photo uploaded for analysis');
+        console.log('🔍 onPhotoTaken called successfully');
       };
+      
       reader.onerror = (error) => {
-        console.error('File reading error:', error);
+        console.error('🔍 File reading error:', error);
       };
+      
       reader.readAsDataURL(file);
+    } else {
+      console.log('🔍 No file found in event');
     }
+    
+    // Clear the input so the same file can be selected again
+    event.target.value = '';
   };
 
   return (
