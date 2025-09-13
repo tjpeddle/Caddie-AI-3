@@ -1,4 +1,4 @@
-  import React, { useRef } from 'react';
+ import React, { useRef } from 'react';
 
 interface PhotoCaptureProps {
   onPhotoTaken: (photoData: string, analysis: string) => void;
@@ -73,6 +73,27 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
         title="Upload Photo"
       >
         📁
+      </button>
+      <button
+        onClick={() => {
+          // Create camera input dynamically for iOS
+          const cameraInput = document.createElement('input');
+          cameraInput.type = 'file';
+          cameraInput.accept = 'image/*';
+          cameraInput.capture = 'environment';
+          cameraInput.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+              handleFileSelect({ target: { files: [file] } } as any);
+            }
+          };
+          cameraInput.click();
+        }}
+        disabled={isLoading}
+        className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
+        title="Take Photo"
+      >
+        📷
       </button>
     </>
   );
