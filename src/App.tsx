@@ -330,24 +330,47 @@ const handleSendMessage = useCallback((message: string) => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
-useEffect(() => {
-  // Request wake lock when app starts
-  requestWakeLock();
-  
-  // Re-request if visibility changes
-  const handleVisibilityChange = () => {
-    if (!document.hidden) {
-      requestWakeLock();
-    }
-  };
-  
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-  
-  return () => {
-    releaseWakeLock();
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
-}, [requestWakeLock, releaseWakeLock]);
+  // Enhanced app visibility and cleanup handling
+  useEffect(() => {
+    // Request wake lock when app starts
+    requestWakeLock();
+    
+    // Re-request if visibility changes
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        requestWakeLock();
+      } else {
+        // When app goes to background, ensure speech recognition is stopped
+        if (isListening) {
+          stopListening();
+        }
+        // Cancel any ongoing speech
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      }
+    };
+    
+    // Handle page unload/close to cleanup speech recognition
+    const handleBeforeUnload = () => {
+      if (isListening) {
+        stopListening();
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      releaseWakeLock();
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      releaseWakeLock();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [requestWakeLock, releaseWakeLock, isListening, stopListening]);
   const goToMainMenu = useCallback(() => {
     setShowWelcome(true);
   }, []);
