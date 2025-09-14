@@ -501,22 +501,36 @@ const handleSendMessage = useCallback((message: string) => {
                 </div>
                 
                 <div className="max-h-40 overflow-y-auto">
-                  {availableVoices.map((voice, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setSelectedVoice(voice);
-                        setShowVoiceSettings(false);
-                      }}
-                      className={`block w-full text-left p-2 rounded text-sm mb-1 ${
-                        selectedVoice === voice
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      {voice.name}
-                    </button>
-                  ))}
+                  {availableVoices.length > 0 ? (
+                    availableVoices.map((voice, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setSelectedVoice(voice);
+                          setShowVoiceSettings(false);
+                        }}
+                        className={`block w-full text-left p-2 rounded text-sm mb-1 ${
+                          selectedVoice === voice
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        {voice.name}
+                        <div className="text-xs text-gray-400">{voice.lang}</div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 text-sm p-2">
+                      No premium voices found. Please download:
+                      <div className="mt-1 text-xs">
+                        • Ava Premium<br/>
+                        • Evan Premium<br/>
+                        • Nicky Enhanced<br/>
+                        • Siri Voices<br/>
+                        • Karen Premium
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
