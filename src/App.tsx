@@ -2,8 +2,7 @@
 import ChatMessage from "./components/ChatMessage";
 import PhotoCapture from "./components/PhotoCapture";
 import Scorecard from "./components/Scorecard";
-import Settings from "./components/Settings";
-import geminiService from "./services/geminiService";
+ import geminiService from "./services/geminiService";
 import { Message, GolfData, RoundStats } from "./types";
 
 const App: React.FC = () => {
