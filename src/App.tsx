@@ -8,6 +8,7 @@ import InputBar from './components/InputBar';
 import WelcomeScreen from './components/WelcomeScreen';
 import Scorecard from './components/Scorecard';
 import PhotoCapture from './components/PhotoCapture';
+
 const STORAGE_KEY = 'golfCaddieHistory_v2';
 
 const App: React.FC = () => {
@@ -15,167 +16,153 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [text, setText] = useState(''); // Lifted state from InputBar
-const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
-const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [text, setText] = useState('');
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.8);
   const [wakeLock, setWakeLock] = useState<any>(null);
   const [showScorecard, setShowScorecard] = useState(false);
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
-   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
     if (!golfData || !golfData.currentRoundId) return [];
     return golfData.rounds[golfData.currentRoundId] || [];
   }, [golfData]);
 
-  // Load history from localStorage or show welcome screen on initial load
- useEffect(() => {
-  try {
-    const savedHistory = localStorage.getItem(STORAGE_KEY);
-    if (savedHistory) {
-      const data = JSON.parse(savedHistory) as GolfData;
-      // Ensure roundStats exists for backward compatibility
-      if (!data.roundStats) {
-        data.roundStats = {};
+  // Load history
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(STORAGE_KEY);
+      if (savedHistory) {
+        const data = JSON.parse(savedHistory) as GolfData;
+        if (!data.roundStats) {
+          data.roundStats = {};
+        }
+        setGolfData(data);
+        const fullHistory = Object.values(data.rounds).flat();
+        geminiService.initializeChat(fullHistory);
+      } else {
+        setShowWelcome(true);
       }
-      setGolfData(data);
-      const fullHistory = Object.values(data.rounds).flat();
-      geminiService.initializeChat(fullHistory);
-    } else {
+    } catch (e) {
+      console.error("Failed to load chat history:", e);
+      localStorage.removeItem(STORAGE_KEY);
       setShowWelcome(true);
     }
-  } catch (e) {
-    console.error("Failed to load or parse chat history:", e);
-    localStorage.removeItem(STORAGE_KEY);
-    setShowWelcome(true);
-  }
-}, []);
+  }, []);
 
-  // Save history to localStorage whenever it changes
+  // Save history
   useEffect(() => {
     if (golfData) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(golfData));
     }
   }, [golfData]);
  
-  // Load available voices
-useEffect(() => {
-  const loadVoices = () => {
-    const voices = window.speechSynthesis.getVoices();
-    setAvailableVoices(voices);
-    // Set default voice (first English voice or first voice)
-    const defaultVoice = voices.find(voice => voice.lang.startsWith('en')) || voices[0];
-    setSelectedVoice(defaultVoice);
-  };
-
-  loadVoices();
-  window.speechSynthesis.onvoiceschanged = loadVoices;
-}, []);
-  
-const speak = useCallback((text: string) => {
-  if (window.speechSynthesis && text.trim()) {
-    window.speechSynthesis.cancel();
-    
-    setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = voiceSpeed;
-      utterance.volume = 1.0;
-      utterance.pitch = 1.0;
-      
-      // Use selected voice
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
-      
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
-      };
-      
-      window.speechSynthesis.speak(utterance);
-    }, 100);
-  }
-}, [selectedVoice, voiceSpeed]);
-const requestWakeLock = useCallback(async () => {
-  try {
-    if ('wakeLock' in navigator) {
-      const lock = await (navigator as any).wakeLock.request('screen');
-      setWakeLock(lock);
-      console.log('Wake lock active');
-    }
-  } catch (err) {
-    console.error('Wake lock failed:', err);
-  }
-}, []);
-
-const releaseWakeLock = useCallback(() => {
-  if (wakeLock) {
-    wakeLock.release();
-    setWakeLock(null);
-    console.log('Wake lock released');
-  }
-}, [wakeLock]);
-
-const processScoreData = useCallback((text: string, currentRoundId: string) => {
-  if (!golfData?.roundStats[currentRoundId]) return;
-  
-  // Simple pattern matching for common golf phrases
-  const holeMatch = text.match(/hole (\d+)/i);
-  const parMatch = text.match(/par (\d+)/i);
-  const fairwayHit = /hit.*fairway|found.*fairway/i.test(text);
-  const fairwayMissed = /miss.*fairway|off.*fairway/i.test(text);
-  const greenHit = /hit.*green|on.*green/i.test(text);
-  const greenMissed = /miss.*green|short|long/i.test(text);
-  const puttsMatch = text.match(/(\d+) putt|two putt|three putt/i);
-  const upAndDown = /up and down|saved par/i.test(text);
-  
-  let updates: any = {};
-  let holeNumber = golfData.roundStats[currentRoundId].currentHole;
-  
-  if (holeMatch) holeNumber = parseInt(holeMatch[1]);
-  if (parMatch) updates.par = parseInt(parMatch[1]);
-  if (fairwayHit) updates.fairwayHit = true;
-  if (fairwayMissed) updates.fairwayHit = false;
-  if (greenHit) updates.greenInRegulation = true;
-  if (greenMissed) updates.greenInRegulation = false;
-  if (puttsMatch) updates.putts = puttsMatch[1] ? parseInt(puttsMatch[1]) : 2;
-  if (upAndDown) updates.upAndDown = true;
-  
-  if (Object.keys(updates).length > 0) {
-    setGolfData(prevData => {
-      if (!prevData) return null;
-      const roundStats = { ...prevData.roundStats[currentRoundId] };
-      const existingHoleIndex = roundStats.holes.findIndex(h => h.holeNumber === holeNumber);
-      
-      if (existingHoleIndex >= 0) {
-        roundStats.holes[existingHoleIndex] = { ...roundStats.holes[existingHoleIndex], ...updates };
-      } else {
-        roundStats.holes.push({ holeNumber, par: updates.par || 4, ...updates });
-      }
-      
-      return {
-        ...prevData,
-        roundStats: { ...prevData.roundStats, [currentRoundId]: roundStats }
-      };
-    });
-  }
-}, [golfData]);
- const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
-  if (!golfData?.currentRoundId) return;
-  
-  setIsPhotoLoading(true);
-  
-  try {
-    const photoMessage: Message = { 
-      role: Role.USER, 
-      content: "📸 Golf hole photo uploaded for analysis",
-      image: photoData
+  // Load voices - BASIC VERSION
+  useEffect(() => {
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      setAvailableVoices(voices);
+      const defaultVoice = voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+      setSelectedVoice(defaultVoice);
     };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+  
+  const speak = useCallback((text: string) => {
+    try {
+      if (window.speechSynthesis && text.trim()) {
+        window.speechSynthesis.cancel();
+        
+        setTimeout(() => {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = voiceSpeed;
+          utterance.volume = 1.0;
+          utterance.pitch = 1.0;
+          
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+          }
+          
+          window.speechSynthesis.speak(utterance);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Speech failed:', error);
+    }
+  }, [selectedVoice, voiceSpeed]);
+
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        const lock = await (navigator as any).wakeLock.request('screen');
+        setWakeLock(lock);
+      }
+    } catch (err) {
+      console.error('Wake lock failed:', err);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    if (wakeLock) {
+      wakeLock.release();
+      setWakeLock(null);
+    }
+  }, [wakeLock]);
+
+  // SIMPLIFIED score processing
+  const processScoreData = useCallback((text: string, currentRoundId: string) => {
+    if (!golfData?.roundStats[currentRoundId]) return;
     
+    const lowerText = text.toLowerCase();
+    let updates: any = {};
+    
+    // Simple patterns
+    if (lowerText.includes('hit') && lowerText.includes('fairway')) updates.fairwayHit = true;
+    if (lowerText.includes('miss') && lowerText.includes('fairway')) updates.fairwayHit = false;
+    if (lowerText.includes('hit') && lowerText.includes('green')) updates.greenInRegulation = true;
+    if (lowerText.includes('miss') && lowerText.includes('green')) updates.greenInRegulation = false;
+    
+    if (lowerText.includes('two putt')) updates.putts = 2;
+    if (lowerText.includes('three putt')) updates.putts = 3;
+    
+    if (Object.keys(updates).length > 0) {
+      setGolfData(prevData => {
+        if (!prevData) return null;
+        const roundStats = { ...prevData.roundStats[currentRoundId] };
+        const holeNumber = roundStats.currentHole;
+        const existingHoleIndex = roundStats.holes.findIndex(h => h.holeNumber === holeNumber);
+        
+        if (existingHoleIndex >= 0) {
+          roundStats.holes[existingHoleIndex] = { ...roundStats.holes[existingHoleIndex], ...updates };
+        } else {
+          roundStats.holes.push({ holeNumber, par: 4, ...updates });
+        }
+        
+        return {
+          ...prevData,
+          roundStats: { ...prevData.roundStats, [currentRoundId]: roundStats }
+        };
+      });
+    }
+  }, [golfData]);
+
+  // DISABLED photo handling for now to prevent crashes
+  const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
+    console.log('Photo feature temporarily disabled to prevent crashes');
+    // Don't process photos until we fix the crash issue
+  }, []);
+
+  const handleUserInput = useCallback(async (inputText: string) => {
+    if (!inputText || isLoading || !golfData?.currentRoundId) return;
+
+    const userMessage: Message = { role: Role.USER, content: inputText };
     const currentRoundId = golfData.currentRoundId;
     
-    // Add photo message to chat
     setGolfData(prevData => {
       if (!prevData) return null;
       const currentMessages = prevData.rounds[currentRoundId] || [];
@@ -183,99 +170,29 @@ const processScoreData = useCallback((text: string, currentRoundId: string) => {
         ...prevData,
         rounds: {
           ...prevData.rounds,
-          [currentRoundId]: [...currentMessages, photoMessage],
+          [currentRoundId]: [...currentMessages, userMessage],
         },
       };
-    });
-
-    // Try to analyze with AI
-    const analysisPrompt = `Analyze this golf hole and provide strategic advice. Look for hazards, green shape, pin position, best target areas, and club selection suggestions. Provide specific strategic advice for playing this hole.`;
-    
-    try {
-      const response = await geminiService.sendMessage(analysisPrompt, [photoData]);
-      
-      const aiMessage: Message = { role: Role.MODEL, content: response };
-      setGolfData(prevData => {
-        if (!prevData) return null;
-        const currentMessages = prevData.rounds[currentRoundId] || [];
-        return {
-          ...prevData,
-          rounds: {
-            ...prevData.rounds,
-            [currentRoundId]: [...currentMessages, aiMessage],
-          },
-        };
-      });
-      
-      speak(response);
-      
-    } catch (geminiError) {
-      // AI analysis failed, but photo is still uploaded
-      const errorMessage: Message = { 
-        role: Role.MODEL, 
-        content: "I can see your photo was uploaded, but I'm having trouble analyzing it right now. You can describe the hole to me instead!" 
-      };
-      
-      setGolfData(prevData => {
-        if (!prevData) return null;
-        const currentMessages = prevData.rounds[currentRoundId] || [];
-        return {
-          ...prevData,
-          rounds: {
-            ...prevData.rounds,
-            [currentRoundId]: [...currentMessages, errorMessage],
-          },
-        };
-      });
-      
-      speak("Photo uploaded, but having trouble with analysis. Describe the hole to me instead!");
-    }
-    
-  } catch (error) {
-    console.error('Photo handling failed:', error);
-  } finally {
-    setIsPhotoLoading(false);
-  }
-}, [golfData?.currentRoundId, setGolfData, speak]);
-const handleUserInput = useCallback(async (inputText: string) => {
-    if (!inputText || isLoading || !golfData?.currentRoundId) return;
-
-    const userMessage: Message = { role: Role.USER, content: inputText };
-    
-    // Optimistically update UI
-    const currentRoundId = golfData.currentRoundId;
-    setGolfData(prevData => {
-        if (!prevData) return null;
-        const currentMessages = prevData.rounds[currentRoundId] || [];
-        return {
-            ...prevData,
-            rounds: {
-                ...prevData.rounds,
-                [currentRoundId]: [...currentMessages, userMessage],
-            },
-        };
     });
 
     setIsLoading(true);
     setError(null);
 
     try {
-    const responseText = await geminiService.sendMessage(inputText);
-const modelMessage: Message = { role: Role.MODEL, content: responseText };
+      const responseText = await geminiService.sendMessage(inputText);
+      const modelMessage: Message = { role: Role.MODEL, content: responseText };
 
-// Process scoring data from user input and AI response
-processScoreData(inputText + " " + responseText, currentRoundId);
+      processScoreData(inputText + " " + responseText, currentRoundId);
 
-setGolfData(prevData => {
-  // ... rest of your existing code
+      setGolfData(prevData => {
         if (!prevData) return null;
         const currentMessages = prevData.rounds[currentRoundId] || [];
         return {
-            ...prevData,
-            rounds: {
-                ...prevData.rounds,
-                [currentRoundId]: [...currentMessages, modelMessage],
-            },
+          ...prevData,
+          rounds: {
+            ...prevData.rounds,
+            [currentRoundId]: [...currentMessages, modelMessage],
+          },
         };
       });
 
@@ -283,21 +200,6 @@ setGolfData(prevData => {
     } catch (err) {
       const errorMessage = 'Sorry, I ran into a problem. Please try again.';
       setError(errorMessage);
-      const errorModelMessage: Message = { role: Role.MODEL, content: errorMessage };
-      
-      setGolfData(prevData => {
-        if (!prevData) return null;
-        const currentMessages = prevData.rounds[currentRoundId] || [];
-        return {
-            ...prevData,
-            rounds: {
-                ...prevData.rounds,
-                [currentRoundId]: [...currentMessages, errorModelMessage],
-            },
-        };
-      });
-
-      speak(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -307,70 +209,30 @@ setGolfData(prevData => {
     onTranscriptChange: setText,
   });
   
-const handleSendMessage = useCallback((message: string) => {
-  const messageToSend = message.trim();
-  if (messageToSend) {
-    handleUserInput(messageToSend);
-    setText(''); // Clear the input
-    
-    // Force stop speech recognition if it's active
-    if (isListening) {
-      stopListening();
+  const handleSendMessage = useCallback((message: string) => {
+    const messageToSend = message.trim();
+    if (messageToSend) {
+      handleUserInput(messageToSend);
+      setText('');
+      if (isListening) {
+        stopListening();
+      }
     }
-    
-    // Additional cleanup for speech recognition
-    setTimeout(() => {
-      setText(''); // Clear again after a short delay
-    }, 100);
-  }
-}, [handleUserInput, isListening, stopListening]);
+  }, [handleUserInput, isListening, stopListening]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
-  // Enhanced app visibility and cleanup handling
+
   useEffect(() => {
-    // Request wake lock when app starts
     requestWakeLock();
-    
-    // Re-request if visibility changes
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        requestWakeLock();
-      } else {
-        // When app goes to background, ensure speech recognition is stopped
-        if (isListening) {
-          stopListening();
-        }
-        // Cancel any ongoing speech
-        if (window.speechSynthesis) {
-          window.speechSynthesis.cancel();
-        }
-      }
-    };
-    
-    // Handle page unload/close to cleanup speech recognition
-    const handleBeforeUnload = () => {
-      if (isListening) {
-        stopListening();
-      }
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      releaseWakeLock();
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
     return () => {
       releaseWakeLock();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [requestWakeLock, releaseWakeLock, isListening, stopListening]);
+  }, [requestWakeLock, releaseWakeLock]);
+
   const goToMainMenu = useCallback(() => {
     setShowWelcome(true);
   }, []);
@@ -381,58 +243,52 @@ const handleSendMessage = useCallback((message: string) => {
   
   const handleNewRound = useCallback(() => {
     const newRoundId = Date.now().toString();
-    let welcomeMessage: string;
-    let initialMessage: Message;
+    let welcomeMessage = "Hey, I'm your AI Caddie! What's the situation on your first hole?";
+    let initialMessage: Message = { role: Role.MODEL, content: welcomeMessage };
+    
     let updatedData: GolfData;
-
     if (!golfData) {
-      // First round ever
-      welcomeMessage = "Hey, I'm your AI Caddie! I'll remember how you play to give you the best advice. What's the situation on your first hole?";
-      initialMessage = { role: Role.MODEL, content: welcomeMessage };
-     updatedData = {
-    rounds: { [newRoundId]: [initialMessage] },
-    roundStats: { 
-        [newRoundId]: {
+      updatedData = {
+        rounds: { [newRoundId]: [initialMessage] },
+        roundStats: { 
+          [newRoundId]: {
             roundId: newRoundId,
             date: new Date().toISOString(),
             holes: [],
             currentHole: 1,
-        }
-    },
-    currentRoundId: newRoundId,
-};
-    } else {
-      // Subsequent new round
-      welcomeMessage = "Alright, new round! I've got all your past shots in my memory. Let's get started. Tell me about the first hole.";
-      initialMessage = { role: Role.MODEL, content: welcomeMessage };
-     updatedData = {
-    ...golfData,
-    rounds: {
-        ...golfData.rounds,
-        [newRoundId]: [initialMessage],
-    },
-    roundStats: {
-        ...golfData.roundStats,
-        [newRoundId]: {
-            roundId: newRoundId,
-            date: new Date().toISOString(),
-            holes: [],
-            currentHole: 1,
+          }
         },
-    },
-    currentRoundId: newRoundId,
-};
+        currentRoundId: newRoundId,
+      };
+    } else {
+      updatedData = {
+        ...golfData,
+        rounds: {
+          ...golfData.rounds,
+          [newRoundId]: [initialMessage],
+        },
+        roundStats: {
+          ...golfData.roundStats,
+          [newRoundId]: {
+            roundId: newRoundId,
+            date: new Date().toISOString(),
+            holes: [],
+            currentHole: 1,
+          },
+        },
+        currentRoundId: newRoundId,
+      };
     }
+    
     setGolfData(updatedData);
     const fullHistory = Object.values(updatedData.rounds).flat();
     geminiService.initializeChat(fullHistory);
-
     speak(welcomeMessage);
     setShowWelcome(false);
   }, [golfData, speak]);
 
   if (!golfData && !showWelcome) {
-    return null; // Initial loading state
+    return null;
   }
 
   if (showWelcome) {
@@ -459,10 +315,6 @@ const handleSendMessage = useCallback((message: string) => {
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
-            <PhotoCapture 
-              onPhotoTaken={handlePhotoTaken}
-              isLoading={isPhotoLoading}
-            />
             <button
               onClick={() => setShowScorecard(true)}
               className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
@@ -481,6 +333,7 @@ const handleSendMessage = useCallback((message: string) => {
             {showVoiceSettings && (
               <div className="absolute bottom-12 right-0 bg-gray-800 rounded-lg p-4 min-w-48 shadow-lg">
                 <h3 className="text-white mb-2">Voice Options</h3>
+                
                 <div className="mb-4 pb-4 border-b border-gray-600">
                   <label className="text-white text-sm mb-2 block">
                     Speed: {voiceSpeed.toFixed(1)}x
@@ -501,36 +354,22 @@ const handleSendMessage = useCallback((message: string) => {
                 </div>
                 
                 <div className="max-h-40 overflow-y-auto">
-                  {availableVoices.length > 0 ? (
-                    availableVoices.map((voice, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          setSelectedVoice(voice);
-                          setShowVoiceSettings(false);
-                        }}
-                        className={`block w-full text-left p-2 rounded text-sm mb-1 ${
-                          selectedVoice === voice
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-300 hover:bg-gray-700'
-                        }`}
-                      >
-                        {voice.name}
-                        <div className="text-xs text-gray-400">{voice.lang}</div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-gray-400 text-sm p-2">
-                      No premium voices found. Please download:
-                      <div className="mt-1 text-xs">
-                        • Ava Premium<br/>
-                        • Evan Premium<br/>
-                        • Nicky Enhanced<br/>
-                        • Siri Voices<br/>
-                        • Karen Premium
-                      </div>
-                    </div>
-                  )}
+                  {availableVoices.map((voice, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSelectedVoice(voice);
+                        setShowVoiceSettings(false);
+                      }}
+                      className={`block w-full text-left p-2 rounded text-sm mb-1 ${
+                        selectedVoice === voice
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      {voice.name}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -548,7 +387,7 @@ const handleSendMessage = useCallback((message: string) => {
         isLoading={isLoading}
       />
       
-      {golfData?.currentRoundId && golfData.roundStats[golfData.currentRoundId] && (
+      {golfData?.currentRoundId && golfData.roundStats?.[golfData.currentRoundId] && (
         <Scorecard
           roundStats={golfData.roundStats[golfData.currentRoundId]}
           isVisible={showScorecard}
@@ -560,4 +399,3 @@ const handleSendMessage = useCallback((message: string) => {
 };
 
 export default App;
-
