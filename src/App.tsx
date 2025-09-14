@@ -344,6 +344,10 @@ const App: React.FC = () => {
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
+            <PhotoCapture 
+              onPhotoTaken={handlePhotoTaken}
+              isLoading={isPhotoLoading}
+            />
             <button
               onClick={() => setShowScorecard(true)}
               className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
