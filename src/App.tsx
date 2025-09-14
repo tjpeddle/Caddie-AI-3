@@ -243,7 +243,8 @@ const App: React.FC = () => {
   
   const handleNewRound = useCallback(() => {
     const newRoundId = Date.now().toString();
-    let welcomeMessage = "Hey, I'm your AI Caddie! What's the situation on your first hole?";
+    // MUCH more concise welcome message
+    let welcomeMessage = "Ready to caddie for you. What's your first shot?";
     let initialMessage: Message = { role: Role.MODEL, content: welcomeMessage };
     
     let updatedData: GolfData;
