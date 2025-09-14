@@ -1,4 +1,4 @@
- import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Message, Role, GolfData } from './types';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition.ts';
 import { geminiService } from './services/geminiService';
@@ -519,8 +519,7 @@ useEffect(() => {
           onClose={() => setShowScorecard(false)}
         />
       )}
-      
-   </div> 
+    </div>
   );
 };
 
