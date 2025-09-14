@@ -1,6 +1,5 @@
  import React, { useState, useEffect, useCallback } from "react";
 import ChatMessage from "./components/ChatMessage";
-import ChatInput from "./components/ChatInput";
 import PhotoCapture from "./components/PhotoCapture";
 import Scorecard from "./components/Scorecard";
 import Settings from "./components/Settings";
