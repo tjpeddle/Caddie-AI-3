@@ -76,8 +76,10 @@ const App: React.FC = () => {
   const speak = useCallback((text: string) => {
     try {
       if (window.speechSynthesis && text.trim()) {
+        // Always cancel previous speech first
         window.speechSynthesis.cancel();
         
+        // Wait a bit longer to ensure speech synthesis is ready
         setTimeout(() => {
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.rate = voiceSpeed;
@@ -88,11 +90,37 @@ const App: React.FC = () => {
             utterance.voice = selectedVoice;
           }
           
-          window.speechSynthesis.speak(utterance);
-        }, 100);
+          utterance.onstart = () => {
+            console.log('Speech started successfully');
+          };
+          
+          utterance.onerror = (event) => {
+            console.error('Speech error:', event);
+          };
+          
+          utterance.onend = () => {
+            console.log('Speech completed');
+          };
+          
+          // Try to speak - with additional error handling
+          try {
+            window.speechSynthesis.speak(utterance);
+            console.log('Speech synthesis called');
+          } catch (speakError) {
+            console.error('Failed to call speak:', speakError);
+            // Try again after a longer delay
+            setTimeout(() => {
+              try {
+                window.speechSynthesis.speak(utterance);
+              } catch (retryError) {
+                console.error('Retry also failed:', retryError);
+              }
+            }, 500);
+          }
+        }, 200); // Longer delay to avoid conflicts with microphone
       }
     } catch (error) {
-      console.error('Speech failed:', error);
+      console.error('Speech setup failed:', error);
     }
   }, [selectedVoice, voiceSpeed]);
 
