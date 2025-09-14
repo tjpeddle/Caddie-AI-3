@@ -330,24 +330,47 @@ const handleSendMessage = useCallback((message: string) => {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
-useEffect(() => {
-  // Request wake lock when app starts
-  requestWakeLock();
-  
-  // Re-request if visibility changes
-  const handleVisibilityChange = () => {
-    if (!document.hidden) {
-      requestWakeLock();
-    }
-  };
-  
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-  
-  return () => {
-    releaseWakeLock();
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-  };
-}, [requestWakeLock, releaseWakeLock]);
+  // Enhanced app visibility and cleanup handling
+  useEffect(() => {
+    // Request wake lock when app starts
+    requestWakeLock();
+    
+    // Re-request if visibility changes
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        requestWakeLock();
+      } else {
+        // When app goes to background, ensure speech recognition is stopped
+        if (isListening) {
+          stopListening();
+        }
+        // Cancel any ongoing speech
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+        }
+      }
+    };
+    
+    // Handle page unload/close to cleanup speech recognition
+    const handleBeforeUnload = () => {
+      if (isListening) {
+        stopListening();
+      }
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      releaseWakeLock();
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      releaseWakeLock();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [requestWakeLock, releaseWakeLock, isListening, stopListening]);
   const goToMainMenu = useCallback(() => {
     setShowWelcome(true);
   }, []);
@@ -478,22 +501,36 @@ useEffect(() => {
                 </div>
                 
                 <div className="max-h-40 overflow-y-auto">
-                  {availableVoices.map((voice, index) => (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setSelectedVoice(voice);
-                        setShowVoiceSettings(false);
-                      }}
-                      className={`block w-full text-left p-2 rounded text-sm mb-1 ${
-                        selectedVoice === voice
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      {voice.name}
-                    </button>
-                  ))}
+                  {availableVoices.length > 0 ? (
+                    availableVoices.map((voice, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setSelectedVoice(voice);
+                          setShowVoiceSettings(false);
+                        }}
+                        className={`block w-full text-left p-2 rounded text-sm mb-1 ${
+                          selectedVoice === voice
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        {voice.name}
+                        <div className="text-xs text-gray-400">{voice.lang}</div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="text-gray-400 text-sm p-2">
+                      No premium voices found. Please download:
+                      <div className="mt-1 text-xs">
+                        • Ava Premium<br/>
+                        • Evan Premium<br/>
+                        • Nicky Enhanced<br/>
+                        • Siri Voices<br/>
+                        • Karen Premium
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
