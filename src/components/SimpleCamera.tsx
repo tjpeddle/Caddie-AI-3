@@ -1,4 +1,4 @@
-  import React, { useRef, useState, useCallback } from 'react';
+ import React, { useRef, useState, useCallback } from 'react';
 
 interface SimpleCameraProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -16,7 +16,7 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
       console.log('Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { 
-          facingMode: 'environment', // Use back camera
+          facingMode: { ideal: "environment" }, // More flexible constraint
           width: { ideal: 1280 },
           height: { ideal: 720 }
         }
@@ -84,6 +84,7 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
           ref={videoRef}
           autoPlay
           playsInline
+          muted
           className="flex-1 object-cover w-full"
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
