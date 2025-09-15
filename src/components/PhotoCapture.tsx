@@ -1,5 +1,4 @@
- 
-import React, { useRef, ChangeEvent, useState } from 'react';
+ import React, { useRef, ChangeEvent, useState } from 'react';
 
 interface PhotoCaptureProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
