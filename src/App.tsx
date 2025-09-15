@@ -7,7 +7,7 @@ import ChatMessage from './components/ChatMessage';
 import InputBar from './components/InputBar';
 import WelcomeScreen from './components/WelcomeScreen';
 import Scorecard from './components/Scorecard';
-import PhotoCapture from './components/PhotoCapture';
+import SimpleCamera from './components/SimpleCamera';
 
 const STORAGE_KEY = 'golfCaddieHistory_v2';
 
@@ -344,10 +344,10 @@ const App: React.FC = () => {
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
-            <PhotoCapture 
-              onPhotoTaken={handlePhotoTaken}
-              isLoading={isPhotoLoading}
-            />
+<SimpleCamera 
+  onPhotoTaken={handlePhotoTaken}
+  isLoading={isPhotoLoading}
+/>
             <button
               onClick={() => setShowScorecard(true)}
               className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
