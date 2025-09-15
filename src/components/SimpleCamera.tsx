@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+ import React, { useRef, useState, useCallback } from 'react';
 
 interface SimpleCameraProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -56,7 +56,7 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
       
       // Close camera and send photo
       closeCamera();
-      onPhotoTaken(dataUrl, "Green photo for AI analysis");
+      onPhotoTaken(dataUrl, "Golf hole photo for strategic analysis");
     }
   }, [closeCamera, onPhotoTaken]);
 
@@ -82,7 +82,7 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
             onClick={capturePhoto}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg"
           >
-            📸 Capture Green
+            📸 Analyze Hole
           </button>
         </div>
       </div>
