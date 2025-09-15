@@ -1,4 +1,4 @@
- import React, { useRef, useState, useCallback } from 'react';
+  import React, { useRef, useState, useCallback } from 'react';
 
 interface SimpleCameraProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -13,6 +13,7 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
 
   const openCamera = useCallback(async () => {
     try {
+      console.log('Requesting camera access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: 'environment', // Use back camera
@@ -21,14 +22,30 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
         }
       });
       
+      console.log('Camera stream obtained:', mediaStream);
+      
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        setStream(mediaStream);
-        setIsCameraOpen(true);
+        console.log('Video srcObject set');
+        
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded, attempting to play');
+          videoRef.current?.play().then(() => {
+            console.log('Video playing successfully');
+            setIsCameraOpen(true);
+            setStream(mediaStream);
+          }).catch(err => {
+            console.error('Video play failed:', err);
+            // Still set camera as open even if autoplay fails
+            setIsCameraOpen(true);
+            setStream(mediaStream);
+          });
+        };
       }
     } catch (error) {
       console.error('Camera access failed:', error);
-      alert('Camera access denied or not available');
+      alert(`Camera error: ${error.message}`);
     }
   }, []);
 
@@ -67,20 +84,21 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
           ref={videoRef}
           autoPlay
           playsInline
-          className="flex-1 object-cover"
+          className="flex-1 object-cover w-full"
         />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         
-        <div className="flex justify-center space-x-4 p-4 bg-black">
+        {/* Fixed positioning for iPhone compatibility */}
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center space-x-4 p-4 bg-black bg-opacity-75 safe-area-inset-bottom">
           <button
             onClick={closeCamera}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg"
+            className="px-6 py-3 bg-gray-600 text-white rounded-lg text-lg font-semibold"
           >
             Cancel
           </button>
           <button
             onClick={capturePhoto}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold"
           >
             📸 Analyze Hole
           </button>
