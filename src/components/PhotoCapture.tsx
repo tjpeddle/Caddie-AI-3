@@ -1,106 +1,74 @@
- import React, { useRef, ChangeEvent, useState } from 'react';
+ import React, { useState, ChangeEvent } from "react";
 
 interface PhotoCaptureProps {
-  onPhotoTaken: (base64Photo: string, description: string) => void;
-  isLoading: boolean;
+  onResult: (result: string) => void; // parent will receive Gemini's response
 }
 
-const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [debugStatus, setDebugStatus] = useState<string>('');
-
-  const processImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      setDebugStatus('Reading file...');
-      const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setDebugStatus('File read complete');
-        resolve(result);
-      };
-
-      reader.onerror = (error) => {
-        setDebugStatus('Read error');
-        reject(error);
-      };
-
-      reader.readAsDataURL(file);
-    });
-  };
+const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onResult }) => {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    setDebugStatus('File selected');
-    
+    setError(null);
+    setPreview(null);
+
     const file = event.target.files?.[0];
-    if (!file) {
-      setDebugStatus('No file selected');
-      setTimeout(() => setDebugStatus(''), 2000);
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file.");
       return;
     }
 
-    setDebugStatus(`File: ${file.name}`);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Image = reader.result as string;
+      setPreview(base64Image);
 
-    try {
-      const imageData = await processImage(file);
-      setDebugStatus('Sending to chat...');
-      
-      onPhotoTaken(imageData, "Golf hole photo from camera roll");
-      setDebugStatus('Success!');
-      setTimeout(() => setDebugStatus(''), 2000);
-      
-    } catch (error) {
-      setDebugStatus('Processing failed');
-      setTimeout(() => setDebugStatus(''), 2000);
-      console.error('Error processing photo:', error);
-    }
+      try {
+        setLoading(true);
 
-    event.target.value = '';
-  };
+        // Send to Gemini API
+        const response = await fetch("/api/analyze-photo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64Image }),
+        });
 
-  const handleClick = () => {
-    setDebugStatus('Opening photos...');
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    } else {
-      setDebugStatus('Button error');
-    }
+        if (!response.ok) throw new Error("Failed to analyze image");
+        const data = await response.json();
+
+        onResult(data.output ?? "No response from AI");
+      } catch (err: any) {
+        setError(err.message || "Something went wrong");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    reader.onerror = () => {
+      setError("Failed to read the file. Try again.");
+    };
+
+    reader.readAsDataURL(file);
   };
 
   return (
-    <>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        style={{
-          position: 'absolute',
-          width: '1px',
-          height: '1px',
-          padding: 0,
-          margin: '-1px',
-          overflow: 'hidden',
-          clip: 'rect(0, 0, 0, 0)',
-          whiteSpace: 'nowrap',
-          borderWidth: 0,
-        }}
-      />
-      <button
-        onClick={handleClick}
-        disabled={isLoading}
-        className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
-        title="Upload Golf Hole Photo"
-      >
-        {isLoading ? '⏳' : '📷'}
-      </button>
-      {debugStatus && (
-        <div className="absolute bottom-16 right-0 bg-blue-600 text-white px-2 py-1 rounded text-xs z-50">
-          {debugStatus}
+    <div style={{ margin: "20px 0" }}>
+      <input type="file" accept="image/*" onChange={handleFileChange} />
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {loading && <p>Analyzing image...</p>}
+      {preview && (
+        <div style={{ marginTop: "10px" }}>
+          <p>Preview:</p>
+          <img src={preview} alt="Preview" style={{ maxWidth: "300px" }} />
         </div>
       )}
-    </>
+    </div>
   );
 };
 
 export default PhotoCapture;
+
+
