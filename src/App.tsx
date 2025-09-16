@@ -143,36 +143,18 @@ const App: React.FC = () => {
  // --- Photo handling ---
 const handlePhotoTaken = useCallback(async (base64Image: string) => {
   if (!golfData?.currentRoundId) return;
+
   setIsPhotoLoading(true);
 
   try {
-    // Resize/compress image to avoid iOS memory crash
-    const resizeImage = (base64: string, maxWidth = 800): Promise<string> =>
-      new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const ratio = Math.min(maxWidth / img.width, 1);
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width * ratio;
-          canvas.height = img.height * ratio;
-          const ctx = canvas.getContext('2d')!;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.7)); // compressed JPEG
-        };
-        img.src = base64;
-      });
-
-    const compressedImage = await resizeImage(base64Image);
-
     const response = await fetch("/api/analyze-photo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: compressedImage }),
+      body: JSON.stringify({ image: base64Image }),
     });
 
     const data = await response.json();
 
-    // Update messages safely with only a small thumbnail
     setGolfData(prev => {
       if (!prev) return null;
       const roundId = prev.currentRoundId!;
@@ -182,7 +164,7 @@ const handlePhotoTaken = useCallback(async (base64Image: string) => {
           ...prev.rounds,
           [roundId]: [
             ...(prev.rounds[roundId] || []),
-            { role: Role.USER, content: "Uploaded a photo", image: compressedImage.slice(0, 100) }, // thumbnail
+            { role: Role.USER, content: "Uploaded a photo", image: base64Image },
             { role: Role.MODEL, content: data.output }
           ]
         }
