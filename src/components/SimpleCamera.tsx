@@ -1,121 +1,106 @@
- import React, { useRef, useState, useCallback } from "react";
+ import React, { useRef, useState } from "react";
 
 interface SimpleCameraProps {
-  onPhotoTaken: (base64Photo: string, description: string) => void;
+  onPhotoTaken: (base64Photo: string) => void;
   isLoading: boolean;
 }
 
 const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
 
-  // Start camera
-  const startCamera = useCallback(async () => {
+  const openCamera = async () => {
     try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode },
-        audio: false,
       });
-
+      streamRef.current = stream;
       if (videoRef.current) {
-        videoRef.current.srcObject = newStream;
-        videoRef.current.muted = true; // required for autoplay in iOS
+        videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-
-      setStream(newStream);
       setIsCameraOpen(true);
     } catch (err) {
-      console.error("Error starting camera:", err);
-      alert("Unable to access camera. Please check Safari settings.");
+      console.error("Camera access denied or not available:", err);
     }
-  }, [facingMode]);
+  };
 
-  // Stop camera
-  const stopCamera = useCallback(() => {
-    stream?.getTracks().forEach((track) => track.stop());
-    setStream(null);
+  const closeCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
     setIsCameraOpen(false);
-  }, [stream]);
+  };
 
-  // Capture photo
-  const takePhoto = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+    const base64Image = canvas.toDataURL("image/png");
+    onPhotoTaken(base64Image);
+    closeCamera();
+  };
 
-    // Copy video frame to canvas
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const base64Photo = canvas.toDataURL("image/jpeg", 0.9);
-
-    // Send photo for analysis
-    onPhotoTaken(base64Photo, "Captured photo for analysis");
-
-    // Close camera safely after capture
-    setTimeout(() => {
-      stopCamera();
-    }, 300);
-  }, [onPhotoTaken, stopCamera]);
-
-  // Flip camera
   const flipCamera = () => {
-    stopCamera();
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-    setTimeout(() => startCamera(), 300);
+    closeCamera();
+    // small delay to ensure stream stops before reopening
+    setTimeout(() => openCamera(), 300);
   };
 
   return (
-    <div>
-      {!isCameraOpen ? (
-        <button
-          onClick={startCamera}
-          disabled={isLoading}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg text-lg font-semibold"
-        >
-          {isLoading ? "⏳ Analyzing..." : "📸 Open Camera"}
-        </button>
-      ) : (
-        <div className="flex flex-col items-center">
+    <div className="relative">
+      {isCameraOpen && (
+        <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center">
           <video
             ref={videoRef}
-            className="w-full max-w-sm rounded-lg"
+            className="w-full max-w-md rounded-lg"
             playsInline
-            autoPlay
-            muted
           />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-          <div className="flex space-x-3 mt-3">
+          <div className="flex space-x-4 mt-4">
             <button
-              onClick={takePhoto}
-              disabled={isLoading}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold"
+              onClick={capturePhoto}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg"
             >
-              {isLoading ? "⏳ Analyzing..." : "📷 Capture Photo"}
+              📸 Capture
             </button>
             <button
               onClick={flipCamera}
-              disabled={isLoading}
-              className="px-6 py-3 bg-gray-600 text-white rounded-lg text-lg font-semibold"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg"
             >
               🔄 Flip
             </button>
+            <button
+              onClick={closeCamera}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg"
+            >
+              ❌ Close
+            </button>
           </div>
         </div>
+      )}
+      {!isCameraOpen && (
+        <button
+          onClick={openCamera}
+          disabled={isLoading}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold"
+        >
+          {isLoading ? "⏳ Analyzing..." : "📷 Open Camera"}
+        </button>
       )}
     </div>
   );
 };
 
 export default SimpleCamera;
+
 
 
 
