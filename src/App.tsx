@@ -181,12 +181,6 @@ const App: React.FC = () => {
     }
   }, [golfData]);
 
-  // DISABLED photo handling for now to prevent crashes
-  const handlePhotoTaken = useCallback(async (photoData: string, description: string) => {
-    console.log('Photo feature temporarily disabled to prevent crashes');
-    // Don't process photos until we fix the crash issue
-  }, []);
-
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
@@ -346,10 +340,35 @@ const App: React.FC = () => {
       <div className="p-4 border-t border-gray-700">
         <div className="flex justify-end">
           <div className="relative">
-<SimpleCamera 
-  onPhotoTaken={handlePhotoTaken}
+<SimpleCamera
+  onPhotoTaken={async (base64Image: string) => {
+    setIsPhotoLoading(true);
+    try {
+      const response = await fetch("/api/analyze-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64Image }),
+      });
+
+      const data = await response.json();
+
+      setMessages((prev) => [
+        ...prev,
+        { id: prev.length + 1, text: data.output, fromAI: true },
+      ]);
+    } catch (err) {
+      console.error("Error analyzing image:", err);
+      setMessages((prev) => [
+        ...prev,
+        { id: prev.length + 1, text: "Error analyzing image", fromAI: true },
+      ]);
+    } finally {
+      setIsPhotoLoading(false);
+    }
+  }}
   isLoading={isPhotoLoading}
 />
+
             <button
               onClick={() => setShowScorecard(true)}
               className="p-2 text-gray-400 hover:text-white transition-colors mr-2"
