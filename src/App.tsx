@@ -82,7 +82,7 @@ const App: React.FC = () => {
     }, 200);
   }, [selectedVoice, voiceSpeed]);
 
-  // --- User input handling ---
+  // --- Handle user input ---
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
@@ -140,6 +140,18 @@ const App: React.FC = () => {
     }
   }, [handleUserInput, isListening, stopListening]);
 
+  // --- Photo handling ---
+  const handlePhotoTaken = useCallback(async (base64Image: string) => {
+    if (!golfData?.currentRoundId) return;
+    setIsPhotoLoading(true);
+
+    try {
+      const response = await fetch("/api/analyze-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64Image }),
+      });
+      const data = await response.json();
 
       setGolfData(prev => {
         if (!prev) return null;
@@ -156,7 +168,25 @@ const App: React.FC = () => {
           }
         };
       });
-    
+    } catch (err) {
+      console.error("Error analyzing photo:", err);
+      setGolfData(prev => {
+        if (!prev) return null;
+        const roundId = prev.currentRoundId!;
+        return {
+          ...prev,
+          rounds: {
+            ...prev.rounds,
+            [roundId]: [
+              ...(prev.rounds[roundId] || []),
+              { role: Role.MODEL, content: "Error analyzing image" }
+            ]
+          }
+        };
+      });
+    } finally {
+      setIsPhotoLoading(false);
+    }
   }, [golfData]);
 
   // --- Auto scroll ---
@@ -213,11 +243,10 @@ const App: React.FC = () => {
       </main>
 
       <div className="p-4 border-t border-gray-700 flex justify-end space-x-2">
-       <SimpleCamera
-  onPhotoAnalyzed={(msg) => setMessages((prev) => [...prev, msg])}
-  isLoading={isPhotoLoading}
-/>
-
+        <SimpleCamera
+          onPhotoTaken={handlePhotoTaken}
+          isLoading={isPhotoLoading}
+        />
         <button onClick={() => setShowScorecard(true)}>📋</button>
         <button onClick={() => setShowVoiceSettings(!showVoiceSettings)}>⚙️</button>
       </div>
@@ -244,4 +273,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-
