@@ -1,49 +1,78 @@
- import React, { useRef } from "react";
+ import React, { useRef, useState, useEffect } from "react";
 
-interface PhotoUploadProps {
-  onPhotoTaken: (base64Photo: string, description: string) => void;
+interface SimpleCameraProps {
+  onPhotoTaken: (base64Image: string) => void;
   isLoading: boolean;
 }
 
-const PhotoUpload: React.FC<PhotoUploadProps> = ({ onPhotoTaken, isLoading }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      onPhotoTaken(base64, "Uploaded photo for strategic analysis");
+  useEffect(() => {
+    const startCamera = async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ video: true });
+        setStream(s);
+        if (videoRef.current) videoRef.current.srcObject = s;
+      } catch (err) {
+        console.error("Camera start failed:", err);
+      }
     };
-    reader.readAsDataURL(file);
-  };
 
-  const openFilePicker = () => {
-    fileInputRef.current?.click();
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const takePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const base64Image = canvas.toDataURL("image/png");
+
+    // Stop stream to prevent iOS crash
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+
+    onPhotoTaken(base64Image);
+
+    // Restart camera after short delay
+    setTimeout(async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ video: true });
+        setStream(s);
+        if (videoRef.current) videoRef.current.srcObject = s;
+      } catch (err) {
+        console.error("Camera restart failed:", err);
+      }
+    }, 300);
   };
 
   return (
-    <div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={handleFileChange}
-      />
-      <button
-        onClick={openFilePicker}
-        disabled={isLoading}
-        className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold"
-      >
-        {isLoading ? "⏳ Analyzing..." : "📤 Upload Photo"}
+    <div className="relative">
+      <video ref={videoRef} autoPlay playsInline muted className="rounded w-32 h-24 object-cover" />
+      <canvas ref={canvasRef} style={{ display: "none" }} />
+      <button onClick={takePhoto} disabled={isLoading} className="mt-2 p-2 bg-blue-600 text-white rounded">
+        {isLoading ? "Analyzing..." : "📷 Take Photo"}
       </button>
     </div>
   );
 };
 
-export default PhotoUpload;
-
+export default SimpleCamera;
 
