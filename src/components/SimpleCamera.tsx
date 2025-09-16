@@ -1,4 +1,4 @@
- import React, { useRef, useState } from "react";
+ import React, { useRef, useState, useCallback } from "react";
 
 interface SimpleCameraProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -9,73 +9,75 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
-  const startCamera = async () => {
+  // Start camera
+  const startCamera = useCallback(async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, // ✅ rear camera
-      });
+      const newStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+        videoRef.current.srcObject = newStream;
         await videoRef.current.play();
       }
-      setStream(mediaStream);
+      setStream(newStream);
+      setIsCameraOpen(true);
     } catch (err) {
-      console.error("Error accessing camera:", err);
+      console.error("Error starting camera:", err);
     }
-  };
+  }, []);
 
-  const stopCamera = () => {
+  // Stop camera
+  const stopCamera = useCallback(() => {
     stream?.getTracks().forEach((track) => track.stop());
     setStream(null);
-  };
+    setIsCameraOpen(false);
+  }, [stream]);
 
-  const takePhoto = () => {
+  // Capture photo
+  const takePhoto = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
 
+    const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-
     const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const base64 = canvas.toDataURL("image/jpeg");
-      onPhotoTaken(base64, "Captured photo for strategic analysis");
-    }
+    if (!ctx) return;
 
-    stopCamera(); // ✅ turn off after capture
-  };
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const base64Photo = canvas.toDataURL("image/jpeg", 0.9);
+
+    // Send photo up
+    onPhotoTaken(base64Photo, "Captured photo for analysis");
+
+    // 🔒 Auto-close camera right after capture
+    stopCamera();
+  }, [onPhotoTaken, stopCamera]);
 
   return (
-    <div className="flex flex-col items-center space-y-2">
-      {!stream ? (
+    <div>
+      {!isCameraOpen ? (
         <button
           onClick={startCamera}
           disabled={isLoading}
           className="px-6 py-3 bg-green-600 text-white rounded-lg text-lg font-semibold"
         >
-          {isLoading ? "⏳ Analyzing..." : "📷 Open Camera"}
+          {isLoading ? "⏳ Analyzing..." : "📸 Open Camera"}
         </button>
       ) : (
-        <>
-          <video ref={videoRef} className="w-full rounded-lg" autoPlay playsInline muted />
+        <div className="flex flex-col items-center">
+          <video ref={videoRef} className="w-full max-w-sm rounded-lg" playsInline />
+          <canvas ref={canvasRef} style={{ display: "none" }} />
           <button
             onClick={takePhoto}
             disabled={isLoading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold"
+            className="mt-3 px-6 py-3 bg-blue-600 text-white rounded-lg text-lg font-semibold"
           >
-            {isLoading ? "⏳ Analyzing..." : "📸 Take Photo"}
+            {isLoading ? "⏳ Analyzing..." : "📷 Capture Photo"}
           </button>
-          <button
-            onClick={stopCamera}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm"
-          >
-            ❌ Close Camera
-          </button>
-        </>
+        </div>
       )}
-      <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
 };
