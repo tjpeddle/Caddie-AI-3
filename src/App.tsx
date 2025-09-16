@@ -24,6 +24,8 @@ const App: React.FC = () => {
   const [wakeLock, setWakeLock] = useState<any>(null);
   const [showScorecard, setShowScorecard] = useState(false);
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+ const [messages, setMessages] = useState<Message[]>([]);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const messages = useMemo(() => {
