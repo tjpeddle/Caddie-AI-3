@@ -156,25 +156,7 @@ const App: React.FC = () => {
           }
         };
       });
-    } catch (err) {
-      console.error("Error analyzing photo:", err);
-      setGolfData(prev => {
-        if (!prev) return null;
-        const roundId = prev.currentRoundId!;
-        return {
-          ...prev,
-          rounds: {
-            ...prev.rounds,
-            [roundId]: [
-              ...(prev.rounds[roundId] || []),
-              { role: Role.MODEL, content: "Error analyzing image" }
-            ]
-          }
-        };
-      });
-    } finally {
-      setIsPhotoLoading(false);
-    }
+    
   }, [golfData]);
 
   // --- Auto scroll ---
