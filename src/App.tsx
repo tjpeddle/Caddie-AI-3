@@ -1,6 +1,6 @@
  import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Message, Role, GolfData } from './types';
-import { useSpeechRecognition } from './hooks/useSpeechRecognition.ts';
+import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { geminiService } from './services/geminiService';
 import Header from './components/Header';
 import ChatMessage from './components/ChatMessage';
@@ -21,13 +21,12 @@ const App: React.FC = () => {
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [voiceSpeed, setVoiceSpeed] = useState(0.8);
-  const [wakeLock, setWakeLock] = useState<any>(null);
   const [showScorecard, setShowScorecard] = useState(false);
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Derive current round's messages
+  // --- Derive messages ---
   const messages = useMemo(() => {
     if (!golfData || !golfData.currentRoundId) return [];
     return golfData.rounds[golfData.currentRoundId] || [];
@@ -82,14 +81,13 @@ const App: React.FC = () => {
     }, 200);
   }, [selectedVoice, voiceSpeed]);
 
-  // --- Handle user input ---
+  // --- User input handling ---
   const handleUserInput = useCallback(async (inputText: string) => {
     if (!inputText || isLoading || !golfData?.currentRoundId) return;
 
     const currentRoundId = golfData.currentRoundId;
     const userMessage: Message = { role: Role.USER, content: inputText };
 
-    // Add user message
     setGolfData(prev => {
       if (!prev) return null;
       return {
@@ -140,57 +138,55 @@ const App: React.FC = () => {
     }
   }, [handleUserInput, isListening, stopListening]);
 
- // --- Photo handling ---
-const handlePhotoTaken = useCallback(async (base64Image: string) => {
-  if (!golfData?.currentRoundId) return;
+  // --- Photo handling ---
+  const handlePhotoTaken = useCallback(async (base64Image: string) => {
+    if (!golfData?.currentRoundId) return;
 
-  setIsPhotoLoading(true);
+    setIsPhotoLoading(true);
+    try {
+      const response = await fetch("/api/analyze-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64Image }),
+      });
 
-  try {
-    const response = await fetch("/api/analyze-photo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: base64Image }),
-    });
+      const data = await response.json();
 
-    const data = await response.json();
-
-    setGolfData(prev => {
-      if (!prev) return null;
-      const roundId = prev.currentRoundId!;
-      return {
-        ...prev,
-        rounds: {
-          ...prev.rounds,
-          [roundId]: [
-            ...(prev.rounds[roundId] || []),
-            { role: Role.USER, content: "Uploaded a photo", image: base64Image },
-            { role: Role.MODEL, content: data.output }
-          ]
-        }
-      };
-    });
-
-  } catch (err) {
-    console.error("Error analyzing photo:", err);
-    setGolfData(prev => {
-      if (!prev) return null;
-      const roundId = prev.currentRoundId!;
-      return {
-        ...prev,
-        rounds: {
-          ...prev.rounds,
-          [roundId]: [
-            ...(prev.rounds[roundId] || []),
-            { role: Role.MODEL, content: "Error analyzing image" }
-          ]
-        }
-      };
-    });
-  } finally {
-    setIsPhotoLoading(false);
-  }
-}, [golfData]);
+      setGolfData(prev => {
+        if (!prev) return null;
+        const roundId = prev.currentRoundId!;
+        return {
+          ...prev,
+          rounds: {
+            ...prev.rounds,
+            [roundId]: [
+              ...(prev.rounds[roundId] || []),
+              { role: Role.USER, content: "Uploaded a photo", image: base64Image },
+              { role: Role.MODEL, content: data.output }
+            ]
+          }
+        };
+      });
+    } catch (err) {
+      console.error("Error analyzing photo:", err);
+      setGolfData(prev => {
+        if (!prev) return null;
+        const roundId = prev.currentRoundId!;
+        return {
+          ...prev,
+          rounds: {
+            ...prev.rounds,
+            [roundId]: [
+              ...(prev.rounds[roundId] || []),
+              { role: Role.MODEL, content: "Error analyzing image" }
+            ]
+          }
+        };
+      });
+    } finally {
+      setIsPhotoLoading(false);
+    }
+  }, [golfData]);
 
   // --- Auto scroll ---
   useEffect(() => {
@@ -239,70 +235,21 @@ const handlePhotoTaken = useCallback(async (base64Image: string) => {
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
       <Header onNewRound={handleNewRound} onGoToMainMenu={() => setShowWelcome(true)} />
+      
       <main ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {messages.map((msg, i) => <ChatMessage key={i} message={msg} />)}
         {isLoading && <ChatMessage message={{ role: Role.MODEL, content: '...' }} isLoading />}
         {error && <p className="text-red-400 text-center">{error}</p>}
       </main>
 
-     <div className="p-4 border-t border-gray-700 flex justify-end space-x-2">
-  <SimpleCamera
-    onPhotoTaken={async (base64Image: string) => {
-      if (!golfData?.currentRoundId) return;
-
-      setIsPhotoLoading(true);
-
-      try {
-        const response = await fetch("/api/analyze-photo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64Image }),
-        });
-
-        const data = await response.json();
-
-        setGolfData(prev => {
-          if (!prev) return null;
-          const roundId = prev.currentRoundId!;
-          return {
-            ...prev,
-            rounds: {
-              ...prev.rounds,
-              [roundId]: [
-                ...(prev.rounds[roundId] || []),
-                { role: Role.USER, content: "Uploaded a photo", image: base64Image },
-                { role: Role.MODEL, content: data.output }
-              ]
-            }
-          };
-        });
-      } catch (err) {
-        console.error("Error analyzing photo:", err);
-        setGolfData(prev => {
-          if (!prev) return null;
-          const roundId = prev.currentRoundId!;
-          return {
-            ...prev,
-            rounds: {
-              ...prev.rounds,
-              [roundId]: [
-                ...(prev.rounds[roundId] || []),
-                { role: Role.MODEL, content: "Error analyzing image" }
-              ]
-            }
-          };
-        });
-      } finally {
-        setIsPhotoLoading(false);
-      }
-    }}
-    isLoading={isPhotoLoading}
-  />
-
-  <button onClick={() => setShowScorecard(true)}>📋</button>
-  <button onClick={() => setShowVoiceSettings(!showVoiceSettings)}>⚙️</button>
-</div>
-
+      <div className="p-4 border-t border-gray-700 flex justify-end space-x-2">
+        <SimpleCamera
+          onPhotoTaken={handlePhotoTaken}
+          isLoading={isPhotoLoading}
+        />
+        <button onClick={() => setShowScorecard(true)}>📋</button>
+        <button onClick={() => setShowVoiceSettings(!showVoiceSettings)}>⚙️</button>
+      </div>
 
       <InputBar
         text={text}
@@ -326,3 +273,4 @@ const handlePhotoTaken = useCallback(async (base64Image: string) => {
 };
 
 export default App;
+
