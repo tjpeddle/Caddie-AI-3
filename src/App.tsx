@@ -139,10 +139,12 @@ const App: React.FC = () => {
   }, [handleUserInput, isListening, stopListening]);
 
   // --- Photo handling ---
-  const handlePhotoTaken = useCallback(async (base64Image: string) => {
+const handlePhotoTaken = useCallback(
+  async (base64Image: string, description: string) => {
     if (!golfData?.currentRoundId) return;
 
     setIsPhotoLoading(true);
+
     try {
       const response = await fetch("/api/analyze-photo", {
         method: "POST",
@@ -150,9 +152,13 @@ const App: React.FC = () => {
         body: JSON.stringify({ image: base64Image }),
       });
 
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
       const data = await response.json();
 
-      setGolfData(prev => {
+      setGolfData((prev) => {
         if (!prev) return null;
         const roundId = prev.currentRoundId!;
         return {
@@ -161,15 +167,17 @@ const App: React.FC = () => {
             ...prev.rounds,
             [roundId]: [
               ...(prev.rounds[roundId] || []),
-              { role: Role.USER, content: "Uploaded a photo", image: base64Image },
-              { role: Role.MODEL, content: data.output }
-            ]
-          }
+              {
+                role: Role.MODEL,
+                content: data.analysis || "No analysis returned",
+              },
+            ],
+          },
         };
       });
     } catch (err) {
       console.error("Error analyzing photo:", err);
-      setGolfData(prev => {
+      setGolfData((prev) => {
         if (!prev) return null;
         const roundId = prev.currentRoundId!;
         return {
@@ -178,15 +186,18 @@ const App: React.FC = () => {
             ...prev.rounds,
             [roundId]: [
               ...(prev.rounds[roundId] || []),
-              { role: Role.MODEL, content: "Error analyzing image" }
-            ]
-          }
+              { role: Role.MODEL, content: "⚠️ Error analyzing image" },
+            ],
+          },
         };
       });
     } finally {
       setIsPhotoLoading(false);
     }
-  }, [golfData]);
+  },
+  [golfData]
+);
+
 
   // --- Auto scroll ---
   useEffect(() => {
