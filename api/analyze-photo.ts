@@ -1,22 +1,20 @@
- import type { VercelRequest, VercelResponse } from "@vercel/node";
+ import type { NextApiRequest, NextApiResponse } from "next";
 
-// Dummy AI analysis function – replace with your actual AI logic
-async function analyzePhoto(base64Photo: string): Promise<string> {
-  // Example: pretend analysis
-  return `Photo analyzed successfully. Length: ${base64Photo.length} characters.`;
-}
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") return res.status(405).send("Method not allowed");
-
-  const { base64Photo } = req.body;
-  if (!base64Photo) return res.status(400).send("No photo provided");
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   try {
-    const result = await analyzePhoto(base64Photo);
-    res.status(200).json({ result });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "AI analysis failed" });
+    const { image } = req.body;
+
+    // ✅ Replace this mock with your real AI call later
+    const analysis = "This looks like a golf green with a bunker to the left.";
+
+    res.status(200).json({ analysis });
+  } catch (error) {
+    console.error("Error in analyze-photo API:", error);
+    res.status(500).json({ error: "Failed to analyze photo" });
   }
 }
+
