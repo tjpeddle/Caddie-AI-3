@@ -19,7 +19,7 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        videoRef.current.play().catch(console.error); // ensure video plays
       }
       setIsCameraOpen(true);
     } catch (err) {
@@ -31,6 +31,9 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null; // reset video element
     }
     setIsCameraOpen(false);
   };
@@ -45,13 +48,13 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
     ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
     const base64Image = canvas.toDataURL("image/png");
     onPhotoTaken(base64Image);
-    closeCamera();
+    closeCamera(); // close after capture
   };
 
   const flipCamera = () => {
     setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
     closeCamera();
-    // small delay to ensure stream stops before reopening
+    // small delay to ensure camera stops before reopening
     setTimeout(() => openCamera(), 300);
   };
 
