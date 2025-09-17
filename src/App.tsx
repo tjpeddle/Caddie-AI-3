@@ -49,59 +49,61 @@ const App: React.FC = () => {
   }, [golfData]);
 
   // --- Photo handling using native iOS camera (file input) ---
-  const handlePhotoTaken = useCallback(
-    async (base64Image: string, description: string) => {
-      if (!golfData?.currentRoundId) return;
+const handlePhotoTaken = useCallback(
+  async (base64Image: string, description: string = "Uploaded a photo") => {
+    if (!golfData?.currentRoundId) return;
 
-      setIsPhotoLoading(true);
-      try {
-        const response = await fetch("/api/analyze-photo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64Image }),
-        });
+    setIsPhotoLoading(true);
 
-        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+    try {
+      const response = await fetch("/api/analyze-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64Image }),
+      });
 
-        const data = await response.json();
+      if (!response.ok) throw new Error(`Server returned ${response.status}`);
 
-        setGolfData((prev) => {
-          if (!prev) return null;
-          const roundId = prev.currentRoundId!;
-          return {
-            ...prev,
-            rounds: {
-              ...prev.rounds,
-              [roundId]: [
-                ...(prev.rounds[roundId] || []),
-                { role: Role.USER, content: description, image: base64Image },
-                { role: Role.MODEL, content: data.analysis || "No analysis returned" },
-              ],
-            },
-          };
-        });
-      } catch (err) {
-        console.error("Error analyzing photo:", err);
-        setGolfData((prev) => {
-          if (!prev) return null;
-          const roundId = prev.currentRoundId!;
-          return {
-            ...prev,
-            rounds: {
-              ...prev.rounds,
-              [roundId]: [
-                ...(prev.rounds[roundId] || []),
-                { role: Role.MODEL, content: "⚠️ Error analyzing image" },
-              ],
-            },
-          };
-        });
-      } finally {
-        setIsPhotoLoading(false);
-      }
-    },
-    [golfData]
-  );
+      const data = await response.json();
+
+      setGolfData(prev => {
+        if (!prev) return null;
+        const roundId = prev.currentRoundId!;
+        return {
+          ...prev,
+          rounds: {
+            ...prev.rounds,
+            [roundId]: [
+              ...(prev.rounds[roundId] || []),
+              { role: Role.USER, content: description, image: base64Image },
+              { role: Role.MODEL, content: data.analysis || "No analysis returned" },
+            ]
+          }
+        };
+      });
+    } catch (err) {
+      console.error("Error analyzing photo:", err);
+      setGolfData(prev => {
+        if (!prev) return null;
+        const roundId = prev.currentRoundId!;
+        return {
+          ...prev,
+          rounds: {
+            ...prev.rounds,
+            [roundId]: [
+              ...(prev.rounds[roundId] || []),
+              { role: Role.MODEL, content: "⚠️ Error analyzing image" }
+            ]
+          }
+        };
+      });
+    } finally {
+      setIsPhotoLoading(false);
+    }
+  },
+  [golfData]
+);
+
 
   // --- Start new round ---
   const handleNewRound = useCallback(() => {
