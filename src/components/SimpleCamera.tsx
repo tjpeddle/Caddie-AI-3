@@ -1,4 +1,4 @@
- import React, { useRef } from "react";
+  import React, { useRef } from "react";
 
 interface SimpleCameraProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -47,6 +47,9 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
 };
 
 export default SimpleCamera;
+
+
+
 
 
 
