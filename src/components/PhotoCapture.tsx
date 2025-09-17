@@ -1,7 +1,7 @@
  import React, { useRef } from "react";
 
 interface PhotoCaptureProps {
-  onPhotoTaken: (base64Photo: string, description: string) => void;
+  onPhotoTaken: (base64Photo: string) => void;
   isLoading: boolean;
 }
 
@@ -15,15 +15,12 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64Photo = reader.result as string;
-      // Send the photo immediately to parent for analysis
-      onPhotoTaken(base64Photo, "Golf photo uploaded");
+      onPhotoTaken(base64Photo); // send directly to parent
     };
     reader.readAsDataURL(file);
 
     // Reset input so next photo works
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
