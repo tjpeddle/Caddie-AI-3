@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+ import React, { useRef, useState } from "react";
 
 interface PhotoCaptureProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -17,13 +17,13 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
 
     reader.onloadend = () => {
       const base64Photo = reader.result as string;
-      setPreview(base64Photo); // show preview
+      setPreview(base64Photo);
       onPhotoTaken(base64Photo, "Golf photo uploaded");
     };
 
     reader.readAsDataURL(file);
 
-    // ✅ Reset input so user can take another picture
+    // Reset input so next photo works
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -35,7 +35,7 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment" // ✅ opens iPhone rear camera
+        capture="environment"
         onChange={handleFileChange}
         style={{ display: "none" }}
       />
@@ -61,5 +61,6 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
 };
 
 export default PhotoCapture;
+
  
 
