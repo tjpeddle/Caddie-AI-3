@@ -140,7 +140,7 @@ const App: React.FC = () => {
 
   // --- Photo handling ---
 const handlePhotoTaken = useCallback(
-  async (base64Image: string, description: string) => {
+  async (base64Image: string) => {
     if (!golfData?.currentRoundId) return;
 
     setIsPhotoLoading(true);
@@ -167,10 +167,8 @@ const handlePhotoTaken = useCallback(
             ...prev.rounds,
             [roundId]: [
               ...(prev.rounds[roundId] || []),
-              {
-                role: Role.MODEL,
-                content: data.analysis || "No analysis returned",
-              },
+              { role: Role.USER, content: "📷 Photo taken", image: base64Image },
+              { role: Role.MODEL, content: data.analysis || "No analysis returned" },
             ],
           },
         };
@@ -197,6 +195,7 @@ const handlePhotoTaken = useCallback(
   },
   [golfData]
 );
+
 
 
   // --- Auto scroll ---
