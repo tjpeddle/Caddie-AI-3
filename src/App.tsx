@@ -9,6 +9,7 @@ import Scorecard from "./components/Scorecard";
 import PhotoCapture from "./components/PhotoCapture"; // ✅ use new component
 
 
+
 const STORAGE_KEY = "golfCaddieHistory_v2";
 
 const App: React.FC = () => {
