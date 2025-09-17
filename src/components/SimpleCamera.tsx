@@ -1,7 +1,7 @@
  import React, { useRef } from "react";
 
 interface SimpleCameraProps {
-  onPhotoTaken: (base64Photo: string) => void;
+  onPhotoTaken: (base64Photo: string, description: string) => void;
   isLoading: boolean;
 }
 
@@ -15,7 +15,8 @@ const SimpleCamera: React.FC<SimpleCameraProps> = ({ onPhotoTaken, isLoading }) 
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64 = reader.result as string;
-      onPhotoTaken(base64);
+      // Always send both args
+      onPhotoTaken(base64, "Uploaded photo for analysis");
     };
     reader.readAsDataURL(file);
   };
