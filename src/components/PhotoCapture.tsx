@@ -1,4 +1,4 @@
- import React, { useRef, useState } from "react";
+ import React, { useRef } from "react";
 
 interface PhotoCaptureProps {
   onPhotoTaken: (base64Photo: string, description: string) => void;
@@ -7,20 +7,17 @@ interface PhotoCaptureProps {
 
 const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-
     reader.onloadend = () => {
       const base64Photo = reader.result as string;
-      setPreview(base64Photo);
+      // Send the photo immediately to parent for analysis
       onPhotoTaken(base64Photo, "Golf photo uploaded");
     };
-
     reader.readAsDataURL(file);
 
     // Reset input so next photo works
@@ -46,21 +43,12 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
       >
         {isLoading ? "Analyzing..." : "Take Photo"}
       </button>
-
-      {preview && (
-        <div className="mt-4">
-          <img
-            src={preview}
-            alt="preview"
-            className="rounded-xl shadow-md max-w-xs"
-          />
-        </div>
-      )}
     </div>
   );
 };
 
 export default PhotoCapture;
+
 
  
 
