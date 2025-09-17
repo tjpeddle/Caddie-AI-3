@@ -6,7 +6,8 @@ import ChatMessage from "./components/ChatMessage";
 import InputBar from "./components/InputBar";
 import WelcomeScreen from "./components/WelcomeScreen";
 import Scorecard from "./components/Scorecard";
-import PhotoCapture from "./PhotoCapture"; // ✅ use new component
+import PhotoCapture from "./components/PhotoCapture"; // ✅ use new component
+
 
 const STORAGE_KEY = "golfCaddieHistory_v2";
 
