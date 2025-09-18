@@ -1,4 +1,4 @@
- import type { VercelRequest, VercelResponse } from '@vercel/node';
+  import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import sharp from 'sharp';
 
