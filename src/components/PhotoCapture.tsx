@@ -5,38 +5,26 @@ interface PhotoCaptureProps {
   isLoading: boolean;
 }
 
-// ✅ Helper to convert a file to base64 reliably (works on iPhone camera files too)
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      const base64Photo = await fileToBase64(file);
-      onPhotoTaken(base64Photo); // send to parent
-    } catch (err) {
-      console.error("Error converting photo to base64:", err);
-    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Photo = reader.result as string;
+      onPhotoTaken(base64Photo); // send directly to parent
+    };
+    reader.readAsDataURL(file);
 
-    // Reset input so the same photo can be chosen again later
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    // Reset input so the next photo works
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex justify-center">
       <input
         ref={fileInputRef}
         type="file"
@@ -57,6 +45,7 @@ const PhotoCapture: React.FC<PhotoCaptureProps> = ({ onPhotoTaken, isLoading }) 
 };
 
 export default PhotoCapture;
+
 
 
  
