@@ -1,0 +1,7 @@
+{
+  "name": "AI Golf Caddie",
+  "description": "A personalized AI golf caddie that learns from your conversations and on-course performance to provide tailored club suggestions and strategy advice. Use your voice to interact for a hands-free experience.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
