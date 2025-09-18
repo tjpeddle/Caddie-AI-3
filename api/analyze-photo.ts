@@ -1,47 +1,43 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// api/analyze-photo.ts
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-export default async function handler(req: any, res: any) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { image } = req.body;
+
     if (!image) {
-      return res.status(400).json({ error: "No image provided" });
+      return res.status(400).json({ error: 'No image provided' });
     }
 
-    // Detect MIME type (default jpeg if unknown)
-    const match = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-    if (!match) {
-      return res.status(400).json({ error: "Invalid base64 image format" });
-    }
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const mimeType = match[1] || "image/jpeg";
-    const base64Data = match[2];
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = 'Analyze this golf photo and describe what is shown.';
 
     const result = await model.generateContent([
+      prompt,
       {
         inlineData: {
-          mimeType,
-          data: base64Data,
+          data: image.split(',')[1], // strip off "data:image/jpeg;base64,"
+          mimeType: 'image/jpeg',
         },
-      },
-      {
-        text: "You are a golf caddie AI. Analyze this photo of a golf hole or green and give helpful feedback.",
       },
     ]);
 
-    const analysis = result.response.text();
-
-    res.status(200).json({ analysis });
+    const text = result.response.text();
+    return res.status(200).json({ analysis: text });
   } catch (error: any) {
-    console.error("Error analyzing photo:", error);
-    res.status(500).json({ error: "Failed to analyze photo" });
+    console.error('Error in analyze-photo:', error);
+    return res.status(500).json({
+      error: 'Failed to analyze image',
+      details: error.message || error.toString(),
+    });
   }
 }
+
 
