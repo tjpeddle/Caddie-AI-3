@@ -1,4 +1,4 @@
- import { GoogleGenerativeAI } from "@google/generative-ai";
+  import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -28,4 +28,3 @@ export default async function handler(req: any, res: any) {
     res.status(500).json({ error: "Failed to analyze photo" });
   }
 }
-
