@@ -1,9 +1,4 @@
-{
-<<<<<<< HEAD
-  "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "sharp": "^0.34.4"
-=======
+ {
   "name": "ai-golf-caddie",
   "private": true,
   "version": "0.0.0",
@@ -14,14 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "@google/genai": "^1.17.0",
-    "react": "^19.1.1"
+    "@google/generative-ai": "^0.24.1",
+    "sharp": "^0.34.4"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
->>>>>>> f35fd1cba178534f7f20a92ba021e90d4103604d
   }
 }
+
+ 
