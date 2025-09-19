@@ -6,9 +6,7 @@ import ChatMessage from "./components/ChatMessage";
 import InputBar from "./components/InputBar";
 import WelcomeScreen from "./components/WelcomeScreen";
 import Scorecard from "./components/Scorecard";
-import PhotoCapture from "./components/PhotoCapture"; // ✅ use new component
-
-
+import PhotoCapture from "./components/PhotoCapture";
 
 const STORAGE_KEY = "golfCaddieHistory_v2";
 
@@ -21,7 +19,6 @@ const App: React.FC = () => {
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
   const [showScorecard, setShowScorecard] = useState(false);
 
-  // --- Load saved history ---
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -33,8 +30,7 @@ const App: React.FC = () => {
       } else {
         setShowWelcome(true);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       localStorage.removeItem(STORAGE_KEY);
       setShowWelcome(true);
     }
@@ -44,72 +40,117 @@ const App: React.FC = () => {
     if (golfData) localStorage.setItem(STORAGE_KEY, JSON.stringify(golfData));
   }, [golfData]);
 
-  // --- Derive messages ---
   const messages = useMemo(() => {
     if (!golfData?.currentRoundId) return [];
     return golfData.rounds[golfData.currentRoundId] || [];
   }, [golfData]);
 
-  // --- Photo handling ---
- const handlePhotoTaken = useCallback(
-  async (base64Image: string) => {
-    if (!golfData?.currentRoundId) return;
+  const handleSendMessage = useCallback(async () => {
+    if (!text.trim() || !golfData?.currentRoundId) return;
 
-    setIsPhotoLoading(true);
+    const newMessage: Message = { role: Role.USER, content: text };
+    const roundId = golfData.currentRoundId;
+
+    setGolfData((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        rounds: {
+          ...prev.rounds,
+          [roundId]: [...(prev.rounds[roundId] || []), newMessage],
+        },
+      };
+    });
+
+    setText("");
+    setIsLoading(true);
 
     try {
-      const response = await fetch("/api/analyze-photo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64Image }),
-      });
-
-      if (!response.ok) throw new Error(`Server returned ${response.status}`);
-
-      const data = await response.json();
-
-      // Only store the AI response — no image in messages
+      const response = await geminiService.sendMessage(newMessage);
       setGolfData((prev) => {
         if (!prev) return null;
-        const roundId = prev.currentRoundId!;
         return {
           ...prev,
           rounds: {
             ...prev.rounds,
             [roundId]: [
               ...(prev.rounds[roundId] || []),
-              {
-                role: Role.MODEL,
-                content: data.analysis || "No analysis returned",
-              },
+              { role: Role.MODEL, content: response },
             ],
           },
         };
       });
-    } catch (err) {
-      console.error("Error analyzing photo:", err);
+    } catch {
       setGolfData((prev) => {
         if (!prev) return null;
-        const roundId = prev.currentRoundId!;
         return {
           ...prev,
           rounds: {
             ...prev.rounds,
             [roundId]: [
               ...(prev.rounds[roundId] || []),
-              { role: Role.MODEL, content: "⚠️ Error analyzing image" },
+              { role: Role.MODEL, content: "⚠️ Error getting AI response" },
             ],
           },
         };
       });
     } finally {
-      setIsPhotoLoading(false);
+      setIsLoading(false);
     }
-  },
-  [golfData]
-);
+  }, [text, golfData]);
 
-  // --- Start new round ---
+  const handlePhotoTaken = useCallback(
+    async (base64Image: string) => {
+      if (!golfData?.currentRoundId) return;
+
+      setIsPhotoLoading(true);
+
+      try {
+        const response = await fetch("/api/analyze-photo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: base64Image }),
+        });
+
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        const data = await response.json();
+
+        setGolfData((prev) => {
+          if (!prev) return null;
+          const roundId = prev.currentRoundId!;
+          return {
+            ...prev,
+            rounds: {
+              ...prev.rounds,
+              [roundId]: [
+                ...(prev.rounds[roundId] || []),
+                { role: Role.MODEL, content: data.analysis || "No analysis returned" },
+              ],
+            },
+          };
+        });
+      } catch {
+        setGolfData((prev) => {
+          if (!prev) return null;
+          const roundId = prev.currentRoundId!;
+          return {
+            ...prev,
+            rounds: {
+              ...prev.rounds,
+              [roundId]: [
+                ...(prev.rounds[roundId] || []),
+                { role: Role.MODEL, content: "⚠️ Error analyzing image" },
+              ],
+            },
+          };
+        });
+      } finally {
+        setIsPhotoLoading(false);
+      }
+    },
+    [golfData]
+  );
+
   const handleNewRound = useCallback(() => {
     const newRoundId = Date.now().toString();
     const welcomeMessage: Message = {
@@ -166,31 +207,26 @@ const App: React.FC = () => {
         onNewRound={handleNewRound}
         onGoToMainMenu={() => setShowWelcome(true)}
       />
+
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {messages.map((msg, i) => (
           <ChatMessage key={i} message={msg} />
         ))}
         {isLoading && (
-          <ChatMessage
-            message={{ role: Role.MODEL, content: "..." }}
-            isLoading
-          />
+          <ChatMessage message={{ role: Role.MODEL, content: "..." }} isLoading />
         )}
         {error && <p className="text-red-400 text-center">{error}</p>}
       </main>
 
       <div className="p-4 border-t border-gray-700 flex justify-end space-x-2">
-        <PhotoCapture
-          onPhotoTaken={handlePhotoTaken}
-          isLoading={isPhotoLoading}
-        />
+        <PhotoCapture onPhotoTaken={handlePhotoTaken} isLoading={isPhotoLoading} />
         <button onClick={() => setShowScorecard(true)}>📋</button>
       </div>
 
       <InputBar
         text={text}
         setText={setText}
-        onSendMessage={() => {}}
+        onSendMessage={handleSendMessage}
         isListening={false}
         startListening={() => {}}
         stopListening={() => {}}
@@ -209,4 +245,3 @@ const App: React.FC = () => {
 };
 
 export default App;
- 
